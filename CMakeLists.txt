@@ -15,6 +15,17 @@ include(FetchContent)
 FetchContent_Declare(argparse GIT_REPOSITORY https://github.com/p-ranav/argparse.git)
 FetchContent_MakeAvailable(argparse)
 
+set(BOOST_INCLUDE_LIBRARIES spirit)
+set(BOOST_ENABLE_CMAKE ON)
+FetchContent_Declare(
+  Boost
+  GIT_REPOSITORY https://github.com/boostorg/boost.git
+  GIT_TAG boost-1.84.0
+  GIT_SHALLOW TRUE
+  GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(Boost)
+
 ##############
 # EXECUTABLE #
 ##############
@@ -22,4 +33,4 @@ FetchContent_MakeAvailable(argparse)
 include_directories(include
                     ${argparse_SOURCE_DIR}/include)
 add_executable(shiny src/main.cc)
-target_link_libraries(shiny argparse)
+target_link_libraries(shiny argparse Boost::spirit)
