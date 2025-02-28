@@ -90,15 +90,15 @@ TokenType Scanner::identifierType() {
     case 'o': return checkKeyword(1, "r", TOKEN_OR);
     case 'p': return checkKeyword(1, "rint", TOKEN_PRINT);
     case 'r': return checkKeyword(1, "eturn", TOKEN_RETURN);
-    case 's': return checkKeyword(1, "uper", TOKEN_SUPER);
-    case 't':
+    case 's':
       if (current - start > 1) {
         switch (source.at(start+1)) {
-          case 'h': return checkKeyword(2, "is", TOKEN_SELF);
-          case 'r': return checkKeyword(2, "ue", TOKEN_TRUE);
+          case 'e': return checkKeyword(2, "lf", TOKEN_SELF);
+          case 'u': return checkKeyword(2, "per", TOKEN_SUPER);
         }
       }
       break;
+    case 't': return checkKeyword(2, "is", TOKEN_SELF);
     case 'v': return checkKeyword(1, "ar", TOKEN_VAR);
     case 'w': return checkKeyword(1, "hile", TOKEN_WHILE);
   }
