@@ -54,14 +54,27 @@ class Statement : public ASTNode {};
 
 class AssignmentStmt : public Statement {
   public:
-  std::string varName;
+  std::string_view varName;
   std::unique_ptr<Expression> expr;
 
-  AssignmentStmt(std::string varName, std::unique_ptr<Expression> expr)
-  : varName(std::move(varName)), expr(std::move(expr)) {}
+  AssignmentStmt(std::string_view varName, std::unique_ptr<Expression> expr)
+  : varName(varName), expr(std::move(expr)) {}
 
   void print() const override {
-    std::cout << varName << " = ";
+    std::cout << "var " << varName << " = ";
+    expr->print();
+    std::cout << ";\n";
+  }
+};
+
+class ExpressionStmt : public Statement {
+public:
+  std::unique_ptr<Expression> expr;
+
+  explicit ExpressionStmt(std::unique_ptr<Expression> expr)
+  : expr(std::move(expr)) {}
+
+  void print() const override {
     expr->print();
     std::cout << ";\n";
   }
@@ -106,8 +119,11 @@ class WhileStmt : public Statement {
 };
 
 class Program {
-  public:
+ public:
   std::vector<std::unique_ptr<Statement>> statements;
+
+  explicit Program(std::vector<std::unique_ptr<Statement>> statements)
+      : statements(std::move(statements)) {}
 
   void print() const {
     for (const auto& stmt : statements) {

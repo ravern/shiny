@@ -30,8 +30,14 @@ struct Token {
   TokenType type;
   std::string_view lexeme;
   int line;
+  bool isAtStartOfLine;
 
-  Token(const TokenType type, std::string_view lexeme, const int line) : type(type), lexeme(lexeme), line(line) {}
+  Token(TokenType type, const std::string_view lexeme, int line,
+        const bool is_at_start_of_line)
+      : type(type),
+        lexeme(lexeme),
+        line(line),
+        isAtStartOfLine(is_at_start_of_line) {}
 };
 
 class Scanner {
@@ -39,6 +45,7 @@ class Scanner {
   int start;
   int current;
   int line;
+  bool isAtStartOfLine;
 
 public:
   explicit Scanner(std::string_view source) {
@@ -46,6 +53,7 @@ public:
     start = 0;
     current = 0;
     line = 1;
+    isAtStartOfLine = false;
   }
 
   Token scan() {
@@ -211,6 +219,7 @@ private:
           break;
         case '\n':
           line++;
+          isAtStartOfLine = true;
           advance();
           break;
         case '/':
@@ -227,13 +236,16 @@ private:
     }
   }
 
-  Token makeToken(TokenType type) const {
+  Token makeToken(TokenType type) {
     std::string_view lexeme = source.substr(start, current - start);
-    return Token(type, lexeme, line);
+    auto token = Token(type, lexeme, line, isAtStartOfLine);
+    isAtStartOfLine = false;
+    return token;
   }
 
-  Token errorToken(std::string_view message) const {
-    Token token(TOKEN_ERROR, message, line);
+  Token errorToken(std::string_view message) {
+    Token token(TOKEN_ERROR, message, line, isAtStartOfLine);
+    isAtStartOfLine = false;
     return token;
   }
 };

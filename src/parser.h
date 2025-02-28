@@ -21,13 +21,18 @@ public:
 
 private:
   std::unique_ptr<Program> program() {
-
+    std::vector<std::unique_ptr<Statement>> statements = {};
+    while (!isAtEnd()) {
+      statements.push_back(statement());
+    }
+    return std::make_unique<Program>(std::move(statements));
   }
 
   std::unique_ptr<Statement> statement() {
     if (match(TOKEN_VAR)) {
       return assignmentStatement();
     }
+    return expressionStatement();
   }
 
   std::unique_ptr<Statement> assignmentStatement() {
@@ -38,7 +43,13 @@ private:
     if (!match(TOKEN_EQUAL)) {
       throw std::runtime_error("Expected =.");
     }
-    expression();
+    auto expr = expression();
+    return std::make_unique<AssignmentStmt>(identifier->lexeme, std::move(expr));
+  }
+
+  std::unique_ptr<Statement> expressionStatement() {
+    auto expr = expression();
+    return std::make_unique<ExpressionStmt>(std::move(expr));
   }
 
   std::unique_ptr<Expression> expression() {
@@ -137,6 +148,10 @@ private:
       return;
     }
     throw std::runtime_error(message);
+  }
+
+  bool isAtEnd() {
+    return next->type == TOKEN_EOF;
   }
 };
 

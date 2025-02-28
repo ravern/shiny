@@ -18,7 +18,7 @@ void run_repl() {
       expr->print();
       std::cout << std::endl;
     } catch (const std::exception& e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      std::cout << "Error: " << e.what() << std::endl;
     }
   }
 }
