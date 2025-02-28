@@ -23,7 +23,6 @@ add_executable(
         shiny
         src/main.cpp
         src/ast.h
-        src/scanner.cpp
         src/scanner.h
         src/parser.h
 )
