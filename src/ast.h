@@ -67,19 +67,6 @@ class AssignmentStmt : public Statement {
   }
 };
 
-class PrintStmt : public Statement {
-  public:
-  std::unique_ptr<Expression> expr;
-
-  explicit PrintStmt(std::unique_ptr<Expression> expr) : expr(std::move(expr)) {}
-
-  void print() const override {
-    std::cout << "print(";
-    expr->print();
-    std::cout << ");\n";
-  }
-};
-
 class IfStmt : public Statement {
   public:
   std::unique_ptr<Expression> condition;
