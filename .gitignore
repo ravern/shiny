@@ -77,4 +77,6 @@ Temporary Items
 ###############
 
 build/
+cmake-build-debug/
 .cache/
+.idea/
