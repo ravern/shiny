@@ -49,7 +49,6 @@ private:
       typeAnnotation = current;
     }
 
-
     if (!match(TOKEN_EQUAL)) {
       throw std::runtime_error("Expected =.");
     }
@@ -124,10 +123,10 @@ private:
 
   std::unique_ptr<Expression> primary() {
     if (match(TOKEN_NUMBER)) {
-      return std::make_unique<NumberExpr>(std::stoi(std::string(current->lexeme)));
+      return std::make_unique<NumberExpr>(current->lexeme);
     }
     if (match(TOKEN_IDENTIFIER)) {
-      return std::make_unique<VariableExpr>(std::string(current->lexeme));
+      return std::make_unique<VariableExpr>(current->lexeme);
     }
     if (match(TOKEN_LEFT_PAREN)) {
       auto expr = expression();

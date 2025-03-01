@@ -1,8 +1,9 @@
-#include <iostream>
+#include <argparse/argparse.hpp>
 #include <fstream>
+#include <iostream>
+
 #include "parser.h"
 #include "scanner.h"
-#include <argparse/argparse.hpp>
 
 void run_repl() {
   std::cout << "Shiny REPL. Type 'exit' to quit.\n";
@@ -36,6 +37,7 @@ void run_file(const std::string& filename) {
     Parser parser(scanner);
     auto expr = parser.parse();
     expr->print();
+
     std::cout << std::endl;
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;

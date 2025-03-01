@@ -1,5 +1,7 @@
+#ifndef AST_H
+#define AST_H
+
 #include <iostream>
-#include <string>
 #include <vector>
 
 class ASTNode {
@@ -11,21 +13,21 @@ class ASTNode {
 class Expression : public ASTNode {};
 
 class NumberExpr : public Expression {
-  public:
-  int value;
+public:
+  std::string_view literal;
 
-  explicit NumberExpr(int value) : value(value) {}
+  explicit NumberExpr(std::string_view literal) : literal(literal) {}
 
   void print() const override {
-    std::cout << value;
+    std::cout << literal;
   }
 };
 
 class VariableExpr : public Expression {
   public:
-  std::string name;
+  std::string_view name;
 
-  explicit VariableExpr(std::string name) : name(std::move(name)) {}
+  explicit VariableExpr(std::string_view name) : name(name) {}
 
   void print() const override {
     std::cout << name;
@@ -58,8 +60,8 @@ class AssignmentStmt : public Statement {
   std::optional<std::string_view> typeAnnotation;
   std::unique_ptr<Expression> expr;
 
-  AssignmentStmt(const std::string_view& var_name,
-                 const std::optional<std::string_view>& type_annotation,
+  AssignmentStmt(const std::string_view var_name,
+                 const std::optional<std::string_view> type_annotation,
                  std::unique_ptr<Expression> expr)
       : varName(var_name), typeAnnotation(type_annotation), expr(std::move(expr)) {}
 
@@ -87,44 +89,6 @@ public:
   }
 };
 
-class IfStmt : public Statement {
-  public:
-  std::unique_ptr<Expression> condition;
-  std::vector<std::unique_ptr<Statement>> body;
-
-  IfStmt(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<Statement>> body)
-  : condition(std::move(condition)), body(std::move(body)) {}
-
-  void print() const override {
-    std::cout << "if (";
-    condition->print();
-    std::cout << ") {\n";
-    for (const auto& stmt : body) {
-      stmt->print();
-    }
-    std::cout << "}\n";
-  }
-};
-
-class WhileStmt : public Statement {
-  public:
-  std::unique_ptr<Expression> condition;
-  std::vector<std::unique_ptr<Statement>> body;
-
-  WhileStmt(std::unique_ptr<Expression> condition, std::vector<std::unique_ptr<Statement>> body)
-  : condition(std::move(condition)), body(std::move(body)) {}
-
-  void print() const override {
-    std::cout << "while (";
-    condition->print();
-    std::cout << ") {\n";
-    for (const auto& stmt : body) {
-      stmt->print();
-    }
-    std::cout << "}\n";
-  }
-};
-
 class Program {
  public:
   std::vector<std::unique_ptr<Statement>> statements;
@@ -138,3 +102,17 @@ class Program {
     }
   }
 };
+
+// Visitor interface
+class ASTVisitor {
+public:
+  virtual ~ASTVisitor() = default;
+  virtual void visit(const NumberExpr& expr) = 0;
+  virtual void visit(const VariableExpr& expr) = 0;
+  virtual void visit(const BinaryExpr& expr) = 0;
+  virtual void visit(const AssignmentStmt& stmt) = 0;
+  virtual void visit(const ExpressionStmt& stmt) = 0;
+};
+
+
+#endif // AST_H
