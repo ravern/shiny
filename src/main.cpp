@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "ast_printer.h"
 #include "parser.h"
 #include "scanner.h"
 
@@ -15,8 +16,11 @@ void run_repl() {
     try {
       Scanner scanner(input);
       Parser parser(scanner);
-      auto expr = parser.parse();
-      expr->print();
+      auto program = parser.parse();
+      ASTPrinter printer;
+      for (const auto& stmt : program->statements) {
+        stmt->accept(printer);
+      }
       std::cout << std::flush;
     } catch (const std::exception& e) {
       std::cout << "Error: " << e.what() << std::endl;
@@ -35,10 +39,12 @@ void run_file(const std::string& filename) {
   try {
     Scanner scanner(input);
     Parser parser(scanner);
-    auto expr = parser.parse();
-    expr->print();
-
-    std::cout << std::endl;
+    auto program = parser.parse();
+    ASTPrinter printer;
+    for (const auto& stmt : program->statements) {
+      stmt->accept(printer);
+    }
+    std::cout << std::flush;
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
     exit(1);

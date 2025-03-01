@@ -1,16 +1,27 @@
 #ifndef AST_H
 #define AST_H
 
-#include <iostream>
 #include <vector>
 
-class ASTNode {
-  public:
-  virtual ~ASTNode() = default;
-  virtual void print() const = 0;  // Debugging function
+class ExpressionStmt;
+class AssignmentStmt;
+class NumberExpr;
+class VariableExpr;
+class BinaryExpr;
+
+class ExpressionVisitor {
+public:
+  virtual ~ExpressionVisitor() = default;
+  virtual void visitNumberExpr(const NumberExpr& expr) const = 0;
+  virtual void visitVariableExpr(const VariableExpr& expr) const = 0;
+  virtual void visitBinaryExpr(const BinaryExpr& expr) const = 0;
 };
 
-class Expression : public ASTNode {};
+class Expression {
+  public:
+  virtual ~Expression() = default;
+  virtual void accept(const ExpressionVisitor& visitor) const = 0;
+};
 
 class NumberExpr : public Expression {
 public:
@@ -18,8 +29,8 @@ public:
 
   explicit NumberExpr(std::string_view literal) : literal(literal) {}
 
-  void print() const override {
-    std::cout << literal;
+  void accept(const ExpressionVisitor& visitor) const override {
+    return visitor.visitNumberExpr(*this);
   }
 };
 
@@ -29,8 +40,8 @@ class VariableExpr : public Expression {
 
   explicit VariableExpr(std::string_view name) : name(name) {}
 
-  void print() const override {
-    std::cout << name;
+  void accept(const ExpressionVisitor& visitor) const override {
+    return visitor.visitVariableExpr(*this);
   }
 };
 
@@ -43,16 +54,23 @@ class BinaryExpr : public Expression {
   BinaryExpr(char op, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
   : op(op), left(std::move(left)), right(std::move(right)) {}
 
-  void print() const override {
-    std::cout << "(";
-    left->print();
-    std::cout << " " << op << " ";
-    right->print();
-    std::cout << ")";
+  void accept(const ExpressionVisitor& visitor) const override {
+    return visitor.visitBinaryExpr(*this);
   }
 };
 
-class Statement : public ASTNode {};
+class StatementVisitor {
+public:
+  virtual ~StatementVisitor() = default;
+  virtual void visitAssignmentStmt(const AssignmentStmt& stmt) const = 0;
+  virtual void visitExpressionStmt(const ExpressionStmt& stmt) const = 0;
+};
+
+class Statement {
+public:
+  virtual ~Statement() = default;
+  virtual void accept(const StatementVisitor& visitor) const = 0;
+};
 
 class AssignmentStmt : public Statement {
  public:
@@ -65,14 +83,8 @@ class AssignmentStmt : public Statement {
                  std::unique_ptr<Expression> expr)
       : varName(var_name), typeAnnotation(type_annotation), expr(std::move(expr)) {}
 
-  void print() const override {
-    std::cout << "var " << varName;
-    if (typeAnnotation) {
-      std::cout << ": " << *typeAnnotation;
-    }
-    std::cout << " = ";
-    expr->print();
-    std::cout << ";\n";
+  void accept(const StatementVisitor& visitor) const override {
+    return visitor.visitAssignmentStmt(*this);
   }
 };
 
@@ -83,9 +95,8 @@ public:
   explicit ExpressionStmt(std::unique_ptr<Expression> expr)
   : expr(std::move(expr)) {}
 
-  void print() const override {
-    expr->print();
-    std::cout << ";\n";
+  void accept(const StatementVisitor& visitor) const override {
+    return visitor.visitExpressionStmt(*this);
   }
 };
 
@@ -95,24 +106,6 @@ class Program {
 
   explicit Program(std::vector<std::unique_ptr<Statement>> statements)
       : statements(std::move(statements)) {}
-
-  void print() const {
-    for (const auto& stmt : statements) {
-      stmt->print();
-    }
-  }
 };
-
-// Visitor interface
-class ASTVisitor {
-public:
-  virtual ~ASTVisitor() = default;
-  virtual void visit(const NumberExpr& expr) = 0;
-  virtual void visit(const VariableExpr& expr) = 0;
-  virtual void visit(const BinaryExpr& expr) = 0;
-  virtual void visit(const AssignmentStmt& stmt) = 0;
-  virtual void visit(const ExpressionStmt& stmt) = 0;
-};
-
 
 #endif // AST_H
