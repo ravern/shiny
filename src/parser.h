@@ -40,11 +40,28 @@ private:
       throw std::runtime_error("Expected identifier.");
     }
     auto identifier = current;
+
+    std::optional<Token> typeAnnotation;
+    if (match(TOKEN_COLON)) {
+      if (!match(TOKEN_IDENTIFIER)) {
+        throw std::runtime_error("Expected type identifier.");
+      }
+      typeAnnotation = current;
+    }
+
+
     if (!match(TOKEN_EQUAL)) {
       throw std::runtime_error("Expected =.");
     }
+
     auto expr = expression();
-    return std::make_unique<AssignmentStmt>(identifier->lexeme, std::move(expr));
+    return std::make_unique<AssignmentStmt>(
+      identifier->lexeme,
+      typeAnnotation.transform([](const Token& token) {
+          return token.lexeme;
+      }),
+      std::move(expr)
+    );
   }
 
   std::unique_ptr<Statement> expressionStatement() {

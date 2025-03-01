@@ -53,15 +53,22 @@ class BinaryExpr : public Expression {
 class Statement : public ASTNode {};
 
 class AssignmentStmt : public Statement {
-  public:
+ public:
   std::string_view varName;
+  std::optional<std::string_view> typeAnnotation;
   std::unique_ptr<Expression> expr;
 
-  AssignmentStmt(std::string_view varName, std::unique_ptr<Expression> expr)
-  : varName(varName), expr(std::move(expr)) {}
+  AssignmentStmt(const std::string_view& var_name,
+                 const std::optional<std::string_view>& type_annotation,
+                 std::unique_ptr<Expression> expr)
+      : varName(var_name), typeAnnotation(type_annotation), expr(std::move(expr)) {}
 
   void print() const override {
-    std::cout << "var " << varName << " = ";
+    std::cout << "var " << varName;
+    if (typeAnnotation) {
+      std::cout << ": " << *typeAnnotation;
+    }
+    std::cout << " = ";
     expr->print();
     std::cout << ";\n";
   }

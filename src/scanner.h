@@ -8,6 +8,8 @@ enum TokenType {
   TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE,
   TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS,
   TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR,
+  TOKEN_COLON,
+
   // One or two character tokens.
   TOKEN_BANG, TOKEN_BANG_EQUAL,
   TOKEN_EQUAL, TOKEN_EQUAL_EQUAL,
@@ -71,6 +73,7 @@ public:
       case '{': return makeToken(TOKEN_LEFT_BRACE);
       case '}': return makeToken(TOKEN_RIGHT_BRACE);
       case ';': return makeToken(TOKEN_SEMICOLON);
+      case ':': return makeToken(TOKEN_COLON);
       case ',': return makeToken(TOKEN_COMMA);
       case '.': return makeToken(TOKEN_DOT);
       case '-': return makeToken(TOKEN_MINUS);

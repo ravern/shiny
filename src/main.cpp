@@ -16,7 +16,7 @@ void run_repl() {
       Parser parser(scanner);
       auto expr = parser.parse();
       expr->print();
-      std::cout << std::endl;
+      std::cout << std::flush;
     } catch (const std::exception& e) {
       std::cout << "Error: " << e.what() << std::endl;
     }
