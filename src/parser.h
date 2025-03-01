@@ -1,9 +1,10 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "scanner.h"
-#include "ast.h"
 #include <stdexcept>
+
+#include "ast/ast_node.h"
+#include "scanner.h"
 
 class Parser {
   Scanner& scanner;
@@ -14,28 +15,28 @@ public:
   Parser(Scanner& s)
       : scanner(s), next(), current() {}
 
-  std::unique_ptr<Program> parse() {
+  std::unique_ptr<ProgramNode> parse() {
     advance();
     return program();
   }
 
 private:
-  std::unique_ptr<Program> program() {
-    std::vector<std::unique_ptr<Statement>> statements = {};
+  std::unique_ptr<ProgramNode> program() {
+    std::vector<std::unique_ptr<ASTNode>> statements = {};
     while (!isAtEnd()) {
       statements.push_back(statement());
     }
-    return std::make_unique<Program>(std::move(statements));
+    return std::make_unique<ProgramNode>(std::move(statements));
   }
 
-  std::unique_ptr<Statement> statement() {
+  std::unique_ptr<ASTNode> statement() {
     if (match(TOKEN_VAR)) {
       return assignmentStatement();
     }
     return expressionStatement();
   }
 
-  std::unique_ptr<Statement> assignmentStatement() {
+  std::unique_ptr<ASTNode> assignmentStatement() {
     if (!match(TOKEN_IDENTIFIER)) {
       throw std::runtime_error("Expected identifier.");
     }
@@ -54,7 +55,7 @@ private:
     }
 
     auto expr = expression();
-    return std::make_unique<AssignmentStmt>(
+    return std::make_unique<AssignmentNode>(
       identifier->lexeme,
       typeAnnotation.transform([](const Token& token) {
           return token.lexeme;
@@ -63,70 +64,70 @@ private:
     );
   }
 
-  std::unique_ptr<Statement> expressionStatement() {
+  std::unique_ptr<ASTNode> expressionStatement() {
     auto expr = expression();
-    return std::make_unique<ExpressionStmt>(std::move(expr));
+    return std::make_unique<ExprStmtNode>(std::move(expr));
   }
 
-  std::unique_ptr<Expression> expression() {
+  std::unique_ptr<ASTNode> expression() {
     return equality();
   }
 
-  std::unique_ptr<Expression> equality() {
+  std::unique_ptr<ASTNode> equality() {
     auto expr = comparison();
     while (match(TOKEN_BANG_EQUAL, TOKEN_EQUAL_EQUAL)) {
       char op = current->lexeme[0];
       auto right = comparison();
-      expr = std::make_unique<BinaryExpr>(op, std::move(expr), std::move(right));
+      expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
     }
     return expr;
   }
 
-  std::unique_ptr<Expression> comparison() {
+  std::unique_ptr<ASTNode> comparison() {
     auto expr = term();
     while (match(TOKEN_GREATER, TOKEN_GREATER_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL)) {
       char op = current->lexeme[0];
       auto right = term();
-      expr = std::make_unique<BinaryExpr>(op, std::move(expr), std::move(right));
+      expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
     }
     return expr;
   }
 
-  std::unique_ptr<Expression> term() {
+  std::unique_ptr<ASTNode> term() {
     auto expr = factor();
     while (match(TOKEN_MINUS, TOKEN_PLUS)) {
       char op = current->lexeme[0];
       auto right = factor();
-      expr = std::make_unique<BinaryExpr>(op, std::move(expr), std::move(right));
+      expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
     }
     return expr;
   }
 
-  std::unique_ptr<Expression> factor() {
+  std::unique_ptr<ASTNode> factor() {
     auto expr = unary();
     while (match(TOKEN_SLASH, TOKEN_STAR)) {
       char op = current->lexeme[0];
       auto right = unary();
-      expr = std::make_unique<BinaryExpr>(op, std::move(expr), std::move(right));
+      expr = std::make_unique<BinaryNode>(op, std::move(expr), std::move(right));
     }
     return expr;
   }
 
-  std::unique_ptr<Expression> unary() {
+  std::unique_ptr<ASTNode> unary() {
     if (match(TOKEN_BANG, TOKEN_MINUS)) {
       char op = current->lexeme[0];
       auto right = unary();
-      return std::make_unique<BinaryExpr>(op, nullptr, std::move(right));
+      return std::make_unique<BinaryNode>(op, nullptr, std::move(right));
     }
     return primary();
   }
 
-  std::unique_ptr<Expression> primary() {
+  std::unique_ptr<ASTNode> primary() {
     if (match(TOKEN_NUMBER)) {
-      return std::make_unique<NumberExpr>(current->lexeme);
+      return std::make_unique<NumberNode>(current->lexeme);
     }
     if (match(TOKEN_IDENTIFIER)) {
-      return std::make_unique<VariableExpr>(current->lexeme);
+      return std::make_unique<VariableNode>(current->lexeme);
     }
     if (match(TOKEN_LEFT_PAREN)) {
       auto expr = expression();

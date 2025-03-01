@@ -22,10 +22,11 @@ include_directories(${argparse_SOURCE_DIR}/include)
 add_executable(
         shiny
         src/main.cpp
-        src/ast.h
         src/scanner.h
         src/parser.h
-        src/ast_printer.h
+        src/type.h
+        src/ast/ast_node.h
+        src/ast/ast_printer.h
 )
 target_link_libraries(
         shiny
