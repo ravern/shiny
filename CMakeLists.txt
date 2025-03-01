@@ -27,6 +27,7 @@ add_executable(
         src/type.h
         src/ast_node.h
         src/ast_printer.h
+        src/type_checker.h
 )
 target_link_libraries(
         shiny

@@ -18,7 +18,7 @@ public:
 
   Type type;
 
-  ASTNode(Type type) : type(type) {}
+  explicit ASTNode(Type type) : type(type) {}
 };
 
 class NumberNode : public ASTNode {
