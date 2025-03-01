@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-#include "ast/ast_node.h"
+#include "ast_node.h"
 #include "scanner.h"
 
 class Parser {

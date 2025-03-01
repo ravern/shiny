@@ -25,8 +25,8 @@ add_executable(
         src/scanner.h
         src/parser.h
         src/type.h
-        src/ast/ast_node.h
-        src/ast/ast_printer.h
+        src/ast_node.h
+        src/ast_printer.h
 )
 target_link_libraries(
         shiny

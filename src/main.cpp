@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "ast/ast_printer.h"
+#include "ast_printer.h"
 #include "parser.h"
 #include "scanner.h"
 
