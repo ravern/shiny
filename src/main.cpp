@@ -5,6 +5,25 @@
 #include "ast_printer.h"
 #include "parser.h"
 #include "scanner.h"
+#include "type_checker.h"
+
+void process_input(const std::string& input, bool exit_on_error = false) {
+  try {
+    Scanner scanner(input);
+    Parser parser(scanner);
+    auto program = parser.parse();
+    ASTPrinter printer;
+    printer.visitNode(*program);
+    TypeChecker typeChecker;
+    typeChecker.visit(*program);
+    typeChecker.printTypeEnvironment();
+
+    std::cout << std::flush;
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    if (exit_on_error) exit(1);
+  }
+}
 
 void run_repl() {
   std::cout << "Shiny REPL. Type 'exit' to quit.\n";
@@ -12,17 +31,7 @@ void run_repl() {
   while (true) {
     std::cout << "> ";
     if (!std::getline(std::cin, input) || input == "exit") break;
-
-    try {
-      Scanner scanner(input);
-      Parser parser(scanner);
-      auto program = parser.parse();
-      ASTPrinter printer;
-      printer.visitNode(*program);
-      std::cout << std::flush;
-    } catch (const std::exception& e) {
-      std::cout << "Error: " << e.what() << std::endl;
-    }
+    process_input(input);
   }
 }
 
@@ -34,17 +43,7 @@ void run_file(const std::string& filename) {
   }
 
   std::string input((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-  try {
-    Scanner scanner(input);
-    Parser parser(scanner);
-    auto program = parser.parse();
-    ASTPrinter printer;
-    printer.visitNode(*program);
-    std::cout << std::flush;
-  } catch (const std::exception& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
-    exit(1);
-  }
+  process_input(input, true);
 }
 
 int main(int argc, char** argv) {

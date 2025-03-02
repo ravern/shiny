@@ -8,7 +8,8 @@
 class ASTNode {
 public:
   enum Type {
-    NUMBER_EXPR,
+    INT_EXPR,
+    FLOAT_EXPR,
     VARIABLE_EXPR,
     BINARY_EXPR,
     ASSIGNMENT_STMT,
@@ -21,11 +22,26 @@ public:
   explicit ASTNode(Type type) : type(type) {}
 };
 
-class NumberNode : public ASTNode {
+class IntNode : public ASTNode {
 public:
   std::string_view literal;
 
-  explicit NumberNode(std::string_view literal) : ASTNode(NUMBER_EXPR), literal(literal) {}
+  explicit IntNode(std::string_view literal) : ASTNode(INT_EXPR), literal(literal) {}
+
+  int getValue() const {
+    return std::stoi(std::string(literal));
+  }
+};
+
+class FloatNode : public ASTNode {
+public:
+  std::string_view literal;
+
+  explicit FloatNode(std::string_view literal) : ASTNode(FLOAT_EXPR), literal(literal) {}
+
+  float getValue() const {
+    return std::stof(std::string(literal));  // Convert string_view to string before parsing
+  }
 };
 
 class VariableNode : public ASTNode {

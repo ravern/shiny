@@ -123,8 +123,11 @@ private:
   }
 
   std::unique_ptr<ASTNode> primary() {
-    if (match(TOKEN_NUMBER)) {
-      return std::make_unique<NumberNode>(current->lexeme);
+    if (match(TOKEN_INT)) {
+      return std::make_unique<IntNode>(current->lexeme);
+    }
+    if (match(TOKEN_FLOAT)) {
+      return std::make_unique<FloatNode>(current->lexeme);
     }
     if (match(TOKEN_IDENTIFIER)) {
       return std::make_unique<VariableNode>(current->lexeme);

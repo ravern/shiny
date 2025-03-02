@@ -16,7 +16,7 @@ enum TokenType {
   TOKEN_GREATER, TOKEN_GREATER_EQUAL,
   TOKEN_LESS, TOKEN_LESS_EQUAL,
   // Literals.
-  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_NUMBER,
+  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_INT, TOKEN_FLOAT,
   // Keywords.
   TOKEN_AND, TOKEN_CLASS, TOKEN_ELSE, TOKEN_FALSE,
   TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
@@ -122,9 +122,11 @@ private:
       advance();
 
       while (isDigit(peek())) advance();
-    }
 
-    return makeToken(TOKEN_NUMBER);
+      return makeToken(TOKEN_FLOAT);
+    } else {
+      return makeToken(TOKEN_INT);
+    }
   }
 
   Token identifier() {

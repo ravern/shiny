@@ -7,9 +7,12 @@ class ASTPrinter {
 public:
   void visitNode(const ASTNode& node) const {
      switch (node.type) {
-      case ASTNode::NUMBER_EXPR:
-        visitNumberNode(static_cast<const NumberNode&>(node));
+      case ASTNode::INT_EXPR:
+        visitIntNode(static_cast<const IntNode&>(node));
         break;
+      case ASTNode::FLOAT_EXPR:
+        visitFloatNode(static_cast<const FloatNode&>(node));
+       break;
       case ASTNode::VARIABLE_EXPR:
         visitVariableNode(static_cast<const VariableNode&>(node));
         break;
@@ -30,8 +33,12 @@ public:
     }
   }
   
-  void visitNumberNode(const NumberNode& node) const {
-    std::cout << node.literal;
+  void visitIntNode(const IntNode& node) const {
+    std::cout << node.getValue();
+  }
+
+  void visitFloatNode(const FloatNode& node) const {
+    std::cout << node.getValue();
   }
 
   void visitVariableNode(const VariableNode& node) const {
