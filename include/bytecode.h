@@ -17,22 +17,27 @@ enum class Opcode : uint8_t {
   NIL = 0x11,
   TRUE = 0x12,
   FALSE = 0x13,
-  CONST = 0x14,  // operand: index of constant
+  ARRAY = 0x14,
+  DICT = 0x15,
+  CONST = 0x16,     // operand: index of constant
+  CLOSURE = 0x17,   // operand: index of function definition
+  BUILT_IN = 0x18,  // operand: index of built-in function
 
-  ADD = 0x31,
-  SUB = 0x32,
-  MUL = 0x33,
-  DIV = 0x34,
+  ADD = 0x31,  // operand: type of operands
+  SUB = 0x32,  // operand: type of operands
+  MUL = 0x33,  // operand: type of operands
+  DIV = 0x34,  // operand: type of operands
   MOD = 0x35,
-  EQ = 0x36,
-  NEQ = 0x37,
-  LT = 0x38,
-  LTE = 0x39,
-  GT = 0x3a,
-  GTE = 0x3b,
-  AND = 0x3c,
-  OR = 0x3d,
-  NOT = 0x3e,
+  NEG = 0x36,  // operand: type of operands
+  EQ = 0x37,
+  NEQ = 0x38,
+  LT = 0x39,   // operand: type of operands
+  LTE = 0x3a,  // operand: type of operands
+  GT = 0x3b,   // operand: type of operands
+  GTE = 0x3c,  // operand: type of operands
+  AND = 0x3d,
+  OR = 0x3e,
+  NOT = 0x3f,
 
   BIT_AND = 0x40,
   BIT_OR = 0x41,
@@ -56,10 +61,9 @@ enum class Opcode : uint8_t {
   UPVALUE_STORE = 0x71,  // operand: index of upvalue
   UPVALUE_CLOSE = 0x72,
 
-  OBJECT_NEW = 0x80,
-  OBJECT_GET_MEMBER = 0x81,   // operand: index of member
-  OBJECT_SET_MEMBER = 0x82,   // operand: index of member
-  OBJECT_CALL_METHOD = 0x83,  // operand: index of method
+  OBJECT_GET_MEMBER = 0x81,  // operand: index of member
+  OBJECT_SET_MEMBER = 0x82,  // operand: index of member
+  OBJECT_GET_METHOD = 0x83,  // operand: index of method definition
 };
 
 using Constant = std::variant<int64_t, double, std::string_view>;
@@ -88,7 +92,7 @@ struct FunctionDef {
 
 struct ClassDef {
   int memberCount;
-  std::vector<FunctionDef> methods;
+  std::vector<FunctionDef> methodDefs;
 
   // for error reporting and debugging
   std::string_view name;
