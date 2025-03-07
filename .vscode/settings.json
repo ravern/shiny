@@ -1,0 +1,5 @@
+{
+    "clangd.fallbackFlags": [
+        "--compile-commands-dir=build/"
+    ]
+}
