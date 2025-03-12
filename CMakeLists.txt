@@ -18,10 +18,10 @@ FetchContent_MakeAvailable(argparse)
 # EXECUTABLE #
 ##############
 
-include_directories(${argparse_SOURCE_DIR}/include)
 add_executable(
         shiny
-        src/main.cpp
+        src/vm/vm.cc
+        src/main.cc
         src/scanner.h
         src/parser.h
         src/type.h
