@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bytecode.h"
+#include "../bytecode.h"
 #include "value.h"
 
 namespace Shiny {
