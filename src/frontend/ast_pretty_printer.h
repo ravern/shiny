@@ -1,7 +1,6 @@
 #ifndef AST_PRETTY_PRINTER_H
 #define AST_PRETTY_PRINTER_H
 #include "ast_visitor.h"
-#include "union_find.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -11,11 +10,10 @@ public:
   using ASTVisitor::visit;     // Ensure we don't hide the base class expression `visit`
 
   StringInterner& stringInterner;
-  UnionFind* unionFind;
   std::vector<bool> isLastChild; // Track whether each level is the last child
 
-  explicit ASTPrettyPrinter(StringInterner& stringInterner, UnionFind* unionFind)
-    : stringInterner(stringInterner), unionFind(unionFind) {
+  explicit ASTPrettyPrinter(StringInterner& stringInterner)
+    : stringInterner(stringInterner) {
   }
 
   void print(Expr& expr) {

@@ -39,7 +39,7 @@ int main() {
   TypeInference inference;
   inference.perform(*ast);
 
-  ASTPrettyPrinter printer(interner, nullptr);
+  ASTPrettyPrinter printer(interner);
   printer.print(*ast);
 
   return 0;
