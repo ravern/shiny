@@ -20,14 +20,22 @@ FetchContent_MakeAvailable(argparse)
 
 add_executable(
         shiny
+        src/main.cpp
+        src/error.h
+        src/bytecode.h
+        src/frontend/scanner.h
+        src/frontend/expr.h
+        src/frontend/type.h
+        src/frontend/type_inference.h
+        src/frontend/type_constraint.h
+        src/frontend/ast_visitor.h
+        src/frontend/union_find.h
+        src/frontend/ast_pretty_printer.h
+        src/frontend/stmt.h
+        src/frontend/factory.h
+        src/frontend/string_interner.h
+        src/frontend/var.h
         src/vm/vm.cc
-        src/main.cc
-        src/scanner.h
-        src/parser.h
-        src/type.h
-        src/ast_node.h
-        src/ast_printer.h
-        src/type_checker.h
 )
 target_link_libraries(
         shiny

@@ -1,0 +1,47 @@
+#include "factory.h"
+
+#include <iostream>
+
+#include "expr.h"
+#include "ast_pretty_printer.h"
+#include "type_inference.h"
+
+
+int main() {
+  StringInterner interner;
+  SymbolId addId = interner.intern("add");
+  SymbolId xId = interner.intern("x");
+  SymbolId yId = interner.intern("y");
+  SymbolId resId = interner.intern("res");
+  SymbolId zId = interner.intern("z");
+
+  auto ast = S::Block({
+    S::Function(
+      addId,
+      { Var(xId, T::Int()), Var(yId, T::Int()) },
+      T::Int(),
+      S::Block({
+        S::Declare(resId, E::Add(E::Var(xId), E::Var(yId))),
+        S::Return(E::Var(4))
+      })
+    ),
+    S::Declare(
+      zId,
+      E::Apply(
+        E::Var(addId),
+        {
+          E::Int("3"),
+          E::Int("4")
+        }
+      )
+    )
+  });
+
+  TypeInference inference;
+  inference.perform(*ast);
+
+  ASTPrettyPrinter printer(interner, nullptr);
+  printer.print(*ast);
+
+  return 0;
+}
