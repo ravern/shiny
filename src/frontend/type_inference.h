@@ -23,6 +23,18 @@ public:
     : Error("Types are not equal: " + typeA.toString() + " and " + typeB.toString()) {}
 };
 
+class ReferenceError : public Shiny::Error {
+public:
+  ReferenceError(std::string message)
+    : Error(message) {}
+};
+
+class SyntaxError : public Shiny::Error {
+public:
+  SyntaxError(std::string message)
+    : Error(message) {}
+};
+
 class TypeInference {
 public:
   // nil value represents declared but not defined. used to prevent referencing a variable in the same assignment statement.
@@ -32,8 +44,11 @@ public:
   // to check return type
   FunctionStmt* enclosingFunction = nullptr;
   UnionFind unionFind;
+  StringInterner& stringInterner;
 
-  TypeInference() = default;
+  explicit TypeInference(StringInterner& stringInterner)
+  : stringInterner(stringInterner) {
+  }
 
   void perform(Stmt& stmt) {
     infer(stmt);
@@ -523,7 +538,7 @@ private:
   void declare(const Var& var) {
     auto& env = envs.back();
     if (env.contains(var.name)) {
-      throw std::runtime_error("Variable " + std::to_string(var.name) + " is already defined in this scope.");
+      throw SyntaxError("Invalid redeclaration of '" + stringInterner.get(var.name) + "'");
     }
     env[var.name] = std::nullopt;
   }
@@ -541,10 +556,10 @@ private:
         if (typeOpt.has_value()) {
           return typeOpt.value();
         }
-        throw std::runtime_error("Cannot read variable while it is being defined.");
+        throw ReferenceError("Circular reference");
       }
     }
-    throw std::runtime_error("Variable " + std::to_string(var.name) + " not found in any scope.");
+    throw ReferenceError("Cannot find '" + stringInterner.get(var.name) + "' in scope");
   }
 };
 
