@@ -5,7 +5,9 @@
 #include "../error.h"
 #include "type.h"
 
-class UnificationError : public Shiny::Error {
+using namespace Shiny;
+
+class UnificationError : public Error {
 public:
   UnificationError(const Type& typeA, const Type& typeB)
     : Error("Cannot unify types: " + typeA.toString() + " and " + typeB.toString()) {}

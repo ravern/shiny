@@ -16,16 +16,16 @@ int main() {
   SymbolId aId = interner.intern("a");
 
   auto ast = S::Block({
-    S::Declare(
-      zId,
-      E::Apply(
-        E::Var(addId),
-        {
-          E::Int("3"),
-          E::Int("4")
-        }
-      )
-    ),
+    // S::Declare(
+    //   zId,
+    //   E::Apply(
+    //     E::Var(addId),
+    //     {
+    //       E::Int("3"),
+    //       E::Int("4")
+    //     }
+    //   )
+    // ),
     S::Function(
       addId,
       { Var(xId, T::Int()), Var(yId, T::Int()) },

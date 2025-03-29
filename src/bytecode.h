@@ -5,8 +5,7 @@
 #include <variant>
 #include <vector>
 
-namespace Shiny {
-
+class Object;
 // Shiny uses a 32-bit instruction format. The first byte is always the opcode.
 // The remaining 3 bytes are used to specify the operand. If the instruction
 // does not have an operand, the remaining bytes should be set to 0.
@@ -67,10 +66,11 @@ enum class Opcode : uint8_t {
   OBJECT_GET_METHOD = 0x83,  // operand: index of method definition
 };
 
-using Constant = std::variant<int64_t, double, std::string_view>;
+using Value = std::variant<std::monostate, bool, int64_t, double, std::shared_ptr<Object>>;
 
 struct Chunk {
   std::vector<Instruction> instructions;
+  std::vector<Value> constants;
 
   // for error reporting and debugging
   // TODO: add vector of line-cols where each instruction is defined
@@ -101,10 +101,8 @@ struct ClassDef {
 };
 
 struct Program {
-  std::vector<Constant> constants;
+  // std::vector<Constant> constants;
   std::vector<ClassDef> classDefs;
   std::vector<FunctionDef> functionDefs;
-  std::vector<std::shared_ptr<Chunk>> chunks;
+  std::vector<Chunk> chunks;
 };
-
-}  // namespace Shiny

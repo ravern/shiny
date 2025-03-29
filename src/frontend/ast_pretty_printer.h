@@ -7,8 +7,6 @@
 
 class ASTPrettyPrinter : public ASTVisitor<ASTPrettyPrinter, void, void> {
 public:
-  using ASTVisitor::visit;     // Ensure we don't hide the base class expression `visit`
-
   StringInterner& stringInterner;
   std::vector<bool> isLastChild; // Track whether each level is the last child
 

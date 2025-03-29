@@ -10,26 +10,28 @@
 #include "union_find.h"
 #include "factory.h"
 
-class InfiniteTypeError : public Shiny::Error {
+using namespace Shiny;
+
+class InfiniteTypeError : public Error {
 public:
   InfiniteTypeError(const Type& variableType, const Type& cycleType)
     : Error("Infinite type detected: " + variableType.toString() +
             " occurs in " + cycleType.toString()) {}
 };
 
-class TypeNotEqualError : public Shiny::Error {
+class TypeNotEqualError : public Error {
 public:
   TypeNotEqualError(const Type& typeA, const Type& typeB)
     : Error("Types are not equal: " + typeA.toString() + " and " + typeB.toString()) {}
 };
 
-class ReferenceError : public Shiny::Error {
+class ReferenceError : public Error {
 public:
   ReferenceError(std::string message)
     : Error(message) {}
 };
 
-class SyntaxError : public Shiny::Error {
+class SyntaxError : public Error {
 public:
   SyntaxError(std::string message)
     : Error(message) {}

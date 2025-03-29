@@ -2,6 +2,6 @@
 
 namespace Shiny {
 
-Value VM::evaluate(Program& program) { return Value{0}; }
+// Value VM::evaluate(Program& program) { return Value{0}; }
 
 }  // namespace Shiny

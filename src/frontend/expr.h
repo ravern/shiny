@@ -37,8 +37,8 @@ public:
   explicit IntegerExpr(std::string_view literal)
     : Expr(ExprKind::Integer), literal(literal) {}
 
-  int getValue() const {
-    return std::stoi(std::string(literal));
+  int64_t getValue() const {
+    return std::stoll(std::string(literal));
   }
 
   bool operator==(const Expr& other) const override {
