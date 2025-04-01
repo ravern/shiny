@@ -38,7 +38,6 @@ public:
 };
 
 class TypeInference {
-public:
   // nil value represents declared but not defined. used to prevent referencing a variable in the same assignment statement.
   std::vector<std::unordered_map<VariableName, std::optional<std::shared_ptr<Type>>>> envs;
   std::vector<std::unique_ptr<TypeConstraint>> constraints;
@@ -48,9 +47,9 @@ public:
   UnionFind unionFind;
   StringInterner& stringInterner;
 
+public:
   explicit TypeInference(StringInterner& stringInterner)
-  : stringInterner(stringInterner) {
-  }
+    : stringInterner(stringInterner) {}
 
   void perform(Stmt& stmt) {
     infer(stmt);
@@ -63,6 +62,7 @@ public:
     solveConstraints();
     substituteAst(expr);
   }
+
 private:
   std::shared_ptr<Type> substitute(std::shared_ptr<Type> ty) {
     switch (ty->kind) {

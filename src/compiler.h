@@ -16,10 +16,17 @@ struct Local {
       : name(name), depth(depth), isCaptured(is_captured) {}
 };
 
+struct Upvalue {
+  uint8_t index;
+  bool isLocal;
+
+  Upvalue(uint8_t index, bool isLocal) : index(index), isLocal(isLocal) {}
+};
+
 class Compiler : public ASTVisitor<Compiler, void, void> {
 public:
   enum class FunctionKind {
-    Script,
+    TopLevel,
     Function,
     Method,
     Initializer
@@ -29,7 +36,8 @@ private:
   Compiler* enclosingCompiler;
   FunctionKind kind;
   std::vector<Local> locals;
-  int scopeDepth = 0;
+  std::vector<Upvalue> upvalues;
+  int scopeDepth = 0; // starts from zero for every Compiler/function.
 
   StringInterner& stringInterner;
   Stmt& ast;
@@ -45,13 +53,33 @@ private:
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
-        function({ 0 }) {}
+        function({ 0, 0 }) {}
 
   FunctionObject compile() {
-    if (kind == FunctionKind::Script) {
-      assert(ast.kind == StmtKind::Block);
+    switch (kind) {
+      case FunctionKind::TopLevel: {
+        assert(ast.kind == StmtKind::Block);
+        visit(ast);
+        break;
+      }
+      case FunctionKind::Function: {
+        assert(ast.kind == StmtKind::Function);
+        auto functionStmt = static_cast<FunctionStmt&>(ast);
+        if (functionStmt.params.size() > 255) {
+          throw std::runtime_error("Too many function parameters");
+        }
+        for (int i = 0; i < functionStmt.params.size(); ++i) {
+          auto& param = functionStmt.params.at(i);
+          declare(param.name);
+          define();
+        }
+        visit(*functionStmt.body);
+        break;
+      }
+      default:
+        throw std::runtime_error("Unknown FunctionKind");
     }
-    visit(ast);
+
     emit(Opcode::RETURN);
     return function;
   }
@@ -74,11 +102,15 @@ private:
   }
 
   void visitVariableExpr(VariableExpr& expr) {
-    int index = resolve(expr.var.name);
-    if (index == -1) {
+    auto name = expr.var.name;
+    int index = resolveLocal(name);
+    if (index != -1) {
+      emit(Opcode::STORE, index);
+    } else if ((index = resolveUpvalue(name) != -1)) {
+      emit(Opcode::UPVALUE_STORE, index);
+    } else {
       throw std::runtime_error("Variable name not found"); // this should never happen; caught by TypeInference
     }
-    emit(Opcode::STORE, index);
   }
 
   void visitApplyExpr(ApplyExpr& expr) {
@@ -106,6 +138,8 @@ private:
       case BinaryOperator::Or:
         emit(Opcode::OR);
         break;
+      default:
+        throw std::runtime_error("Unknown BinaryOperator");
     }
   }
 
@@ -119,6 +153,8 @@ private:
       case UnaryOperator::Not:
         emit(Opcode::NOT);
         break;
+      default:
+        throw std::runtime_error("Unknown UnaryOperator");
     }
   }
 
@@ -132,10 +168,51 @@ private:
   void visitDeclareStmt(DeclareStmt& stmt) {
     declare(stmt.var.name);
     visit(*stmt.expression);
-    define(stmt.var.name);
+    define();
   }
 
-  int resolve(VariableName name) {
+  void visitAssignStmt(AssignStmt& stmt) {
+    visit(*stmt.expression);
+
+    auto name = stmt.var.name;
+    int index = resolveLocal(name);
+    if (index != -1) {
+      emit(Opcode::LOAD, index);
+    } else if ((index = resolveUpvalue(name) != -1)) {
+      emit(Opcode::UPVALUE_LOAD, index);
+    } else {
+      throw std::runtime_error("Variable name not found"); // this should never happen; caught by TypeInference
+    }
+  }
+
+  void visitFunctionStmt(FunctionStmt& stmt) {
+    auto name = stmt.name.name;
+    declare(name);
+    define(); // function body can reference itself
+
+    auto compiler = Compiler(this, FunctionKind::Function, stringInterner, stmt);
+    auto function = std::move(compiler.compile());
+
+    auto value = std::make_shared<FunctionObject>(function);
+    uint32_t constantIndex = addConstant(value);
+    emit(Opcode::CLOSURE, constantIndex);
+    for (int i = 0; i < upvalues.size(); i++) {
+      auto& upvalue = upvalues[i];
+      // FIXME: emit isLocal and index
+    }
+  }
+
+  void visitReturnStmt(ReturnStmt& stmt) {
+    if (kind == FunctionKind::TopLevel) {
+      throw std::runtime_error("Return invalid outside of a func");
+    }
+    visit(*stmt.expression);
+    emit(Opcode::RETURN);
+  }
+
+  void visitIfStmt(IfStmt& stmt) {}
+
+  int resolveLocal(VariableName name) {
     for (int i = locals.size() - 1; i >= 0; i--) {
       auto& local = locals.at(i);
       if (local.name == name) {
@@ -145,6 +222,60 @@ private:
         return i;
       }
     }
+    return -1;
+  }
+
+ private:
+  void beginScope() {
+    scopeDepth++;
+  }
+
+  void endScope() {
+    scopeDepth--;
+    while (locals.size() > 0 && locals.back().depth > scopeDepth) {
+      auto& local = locals.back();
+      if (local.isCaptured) {
+        emit(Opcode::UPVALUE_CLOSE);
+      } else {
+        emit(Opcode::POP);
+      }
+      locals.pop_back();
+    }
+  }
+
+  int addUpvalue(uint8_t index, bool isLocal) {
+    int upvalueCount = function.upvalueCount;
+    for (int i = 0; i < upvalueCount; i++) {
+      auto& upvalue = upvalues[i];
+      if (upvalue.index == index && upvalue.isLocal == isLocal) {
+        return i;
+      }
+    }
+
+    if (upvalueCount == 255) {
+      throw std::runtime_error("Too many closure variables in a function.");
+    }
+
+    auto upvalue = Upvalue(index, isLocal);
+    upvalues.push_back(upvalue);
+    return upvalues.size() - 1;
+  }
+
+  int resolveUpvalue(VariableName name) {
+    if (enclosingCompiler == nullptr) {
+      return -1;
+    }
+    int local = enclosingCompiler->resolveLocal(name);
+    if (local != -1) {
+      enclosingCompiler->locals[local].isCaptured = true;
+      return addUpvalue(local, true);
+    }
+
+    int upvalue = enclosingCompiler->resolveUpvalue(name);
+    if (upvalue != -1) {
+      return addUpvalue(upvalue, false);
+    }
+
     return -1;
   }
 
@@ -169,23 +300,11 @@ private:
     locals.push_back(local);
   }
 
-  void define(VariableName name) {
+  void define() {
     auto& local = locals.back();
     local.depth = scopeDepth;
   }
 
-  void visitAssignStmt(AssignStmt& stmt) {}
-
-  void visitFunctionStmt(FunctionStmt& stmt) {}
-
-  void visitReturnStmt(ReturnStmt& stmt) {
-    visit(*stmt.expression);
-    emit(Opcode::RETURN);
-  }
-
-  void visitIfStmt(IfStmt& stmt) {}
-
- private:
   void emitConstant(Value constant) {
     uint32_t index = addConstant(constant);
     emit(Opcode::CONST, index);

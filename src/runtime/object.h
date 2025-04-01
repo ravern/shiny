@@ -1,6 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+struct Upvalue;
 enum class ObjectKind {
   Function,
 };
@@ -18,9 +19,12 @@ private:
 
 class FunctionObject : public Object {
 public:
-  FunctionObject(int arity) : Object(ObjectKind::Function), arity(arity) {}
+  FunctionObject(int arity, int upvalueCount)
+    : Object(ObjectKind::Function), arity(arity), upvalueCount(upvalueCount) {}
 
   int arity;
+  int upvalueCount;
+  std::vector<Upvalue> upvalues;
   Chunk chunk;
   // should name be a std::string or an Object?
 };

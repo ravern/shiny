@@ -16,7 +16,7 @@ TEST(CompilerTest, Test) {
     S::Declare(zId, E::Add(E::Var(xId), E::Var(yId)))
   });
 
-  auto compiler = Compiler(nullptr, Compiler::FunctionKind::Script, interner, *ast);
+  auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
   auto result = compiler.compile();
   std::cout << "Done" << std::endl;
 }
