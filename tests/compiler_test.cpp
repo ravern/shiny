@@ -18,6 +18,7 @@ TEST(CompilerTest, Test) {
 
   auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
   auto result = compiler.compile();
+
   std::cout << "Done" << std::endl;
 }
 

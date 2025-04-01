@@ -1,7 +1,13 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-struct Upvalue;
+struct Upvalue {
+  uint8_t index;
+  bool isLocal;
+
+  Upvalue(uint8_t index, bool isLocal) : index(index), isLocal(isLocal) {}
+};
+
 enum class ObjectKind {
   Function,
 };
@@ -19,11 +25,10 @@ private:
 
 class FunctionObject : public Object {
 public:
-  FunctionObject(int arity, int upvalueCount)
-    : Object(ObjectKind::Function), arity(arity), upvalueCount(upvalueCount) {}
+  FunctionObject(int arity)
+    : Object(ObjectKind::Function), arity(arity) {}
 
   int arity;
-  int upvalueCount;
   std::vector<Upvalue> upvalues;
   Chunk chunk;
   // should name be a std::string or an Object?

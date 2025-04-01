@@ -22,6 +22,7 @@ add_library(core
         vm/vm.cc
         compiler.h
         runtime/object.h
+        debug.h
 )
 
 add_executable(shiny main.cpp)

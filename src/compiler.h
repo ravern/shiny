@@ -3,9 +3,10 @@
 #include <assert.h>
 
 #include "bytecode.h"
-#include "runtime/object.h"
+#include "debug.h"
 #include "frontend/ast_visitor.h"
 #include "frontend/stmt.h"
+#include "runtime/object.h"
 
 struct Local {
   VariableName name;
@@ -14,13 +15,6 @@ struct Local {
 
   Local(VariableName name, int depth, bool is_captured)
       : name(name), depth(depth), isCaptured(is_captured) {}
-};
-
-struct Upvalue {
-  uint8_t index;
-  bool isLocal;
-
-  Upvalue(uint8_t index, bool isLocal) : index(index), isLocal(isLocal) {}
 };
 
 class Compiler : public ASTVisitor<Compiler, void, void> {
@@ -36,7 +30,6 @@ private:
   Compiler* enclosingCompiler;
   FunctionKind kind;
   std::vector<Local> locals;
-  std::vector<Upvalue> upvalues;
   int scopeDepth = 0; // starts from zero for every Compiler/function.
 
   StringInterner& stringInterner;
@@ -53,7 +46,7 @@ private:
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
-        function({ 0, 0 }) {}
+        function(0) {}
 
   FunctionObject compile() {
     switch (kind) {
@@ -81,6 +74,9 @@ private:
     }
 
     emit(Opcode::RETURN);
+
+    disassembleChunk(function.chunk, "<function>");
+
     return function;
   }
 
@@ -196,10 +192,6 @@ private:
     auto value = std::make_shared<FunctionObject>(function);
     uint32_t constantIndex = addConstant(value);
     emit(Opcode::CLOSURE, constantIndex);
-    for (int i = 0; i < upvalues.size(); i++) {
-      auto& upvalue = upvalues[i];
-      // FIXME: emit isLocal and index
-    }
   }
 
   void visitReturnStmt(ReturnStmt& stmt) {
@@ -244,9 +236,9 @@ private:
   }
 
   int addUpvalue(uint8_t index, bool isLocal) {
-    int upvalueCount = function.upvalueCount;
+    int upvalueCount = function.upvalues.size();
     for (int i = 0; i < upvalueCount; i++) {
-      auto& upvalue = upvalues[i];
+      auto& upvalue = function.upvalues[i];
       if (upvalue.index == index && upvalue.isLocal == isLocal) {
         return i;
       }
@@ -257,8 +249,8 @@ private:
     }
 
     auto upvalue = Upvalue(index, isLocal);
-    upvalues.push_back(upvalue);
-    return upvalues.size() - 1;
+    function.upvalues.push_back(upvalue);
+    return function.upvalues.size() - 1;
   }
 
   int resolveUpvalue(VariableName name) {
