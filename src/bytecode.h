@@ -1,11 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <optional>
-#include <variant>
 #include <vector>
 
-class Object;
+#include "runtime/value.h"
+
 // Shiny uses a 32-bit instruction format. The first byte is always the opcode.
 // The remaining 3 bytes are used to specify the operand. If the instruction
 // does not have an operand, the remaining bytes should be set to 0.
@@ -66,43 +65,10 @@ enum class Opcode : uint8_t {
   OBJECT_GET_METHOD = 0x83,  // operand: index of method definition
 };
 
-using Value = std::variant<std::monostate, bool, int64_t, double, std::shared_ptr<Object>>;
-
 struct Chunk {
   std::vector<Instruction> instructions;
   std::vector<Value> constants;
 
   // for error reporting and debugging
   // TODO: add vector of line-cols where each instruction is defined
-};
-
-struct UpvalueDef {
-  int index;
-  bool isLocal;
-};
-
-struct FunctionDef {
-  int parameterCount;
-  std::shared_ptr<Chunk> body;
-  std::optional<std::vector<UpvalueDef>> upvalues;
-
-  // for error reporting and debugging
-  std::string_view name;
-  // TODO: add the line-col where the function is defined
-};
-
-struct ClassDef {
-  int memberCount;
-  std::vector<FunctionDef> methodDefs;
-
-  // for error reporting and debugging
-  std::string_view name;
-  // TODO: add the line-col where the class is defined
-};
-
-struct Program {
-  // std::vector<Constant> constants;
-  std::vector<ClassDef> classDefs;
-  std::vector<FunctionDef> functionDefs;
-  std::vector<Chunk> chunks;
 };

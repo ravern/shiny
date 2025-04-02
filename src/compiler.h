@@ -10,7 +10,7 @@
 
 struct Local {
   VariableName name;
-  int depth; // -1 is undefined
+  int depth;  // -1 is undefined
   bool isCaptured;
 
   Local(VariableName name, int depth, bool is_captured)
@@ -18,19 +18,14 @@ struct Local {
 };
 
 class Compiler : public ASTVisitor<Compiler, void, void> {
-public:
-  enum class FunctionKind {
-    TopLevel,
-    Function,
-    Method,
-    Initializer
-  };
+ public:
+  enum class FunctionKind { TopLevel, Function, Method, Initializer };
 
-private:
+ private:
   Compiler* enclosingCompiler;
   FunctionKind kind;
   std::vector<Local> locals;
-  int scopeDepth = 0; // starts from zero for every Compiler/function.
+  int scopeDepth = 0;  // starts from zero for every Compiler/function.
 
   StringInterner& stringInterner;
   Stmt& ast;
@@ -38,10 +33,8 @@ private:
   FunctionObject function;
 
  public:
-  Compiler(Compiler* enclosing_compiler,
-           FunctionKind kind,
-           StringInterner& stringInterner,
-           Stmt& ast)
+  Compiler(Compiler* enclosing_compiler, FunctionKind kind,
+           StringInterner& stringInterner, Stmt& ast)
       : enclosingCompiler(enclosing_compiler),
         kind(kind),
         stringInterner(stringInterner),
@@ -75,7 +68,7 @@ private:
 
     emit(Opcode::RETURN);
 
-    disassembleChunk(function.chunk, "<function>");
+    disassembleChunk(function.getChunk(), "<function>");
 
     return function;
   }
@@ -105,7 +98,9 @@ private:
     } else if ((index = resolveUpvalue(name) != -1)) {
       emit(Opcode::UPVALUE_STORE, index);
     } else {
-      throw std::runtime_error("Variable name not found"); // this should never happen; caught by TypeInference
+      throw std::runtime_error(
+          "Variable name not found");  // this should never happen; caught by
+                                       // TypeInference
     }
   }
 
@@ -177,20 +172,22 @@ private:
     } else if ((index = resolveUpvalue(name) != -1)) {
       emit(Opcode::UPVALUE_LOAD, index);
     } else {
-      throw std::runtime_error("Variable name not found"); // this should never happen; caught by TypeInference
+      throw std::runtime_error(
+          "Variable name not found");  // this should never happen; caught by
+                                       // TypeInference
     }
   }
 
   void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
     declare(name);
-    define(); // function body can reference itself
+    define();  // function body can reference itself
 
-    auto compiler = Compiler(this, FunctionKind::Function, stringInterner, stmt);
-    auto function = std::move(compiler.compile());
+    auto compiler =
+        Compiler(this, FunctionKind::Function, stringInterner, stmt);
+    auto function = compiler.compile();
 
-    auto value = std::make_shared<FunctionObject>(function);
-    uint32_t constantIndex = addConstant(value);
+    uint32_t constantIndex = addConstant(ObjectRef(std::move(function)));
     emit(Opcode::CLOSURE, constantIndex);
   }
 
@@ -209,7 +206,9 @@ private:
       auto& local = locals.at(i);
       if (local.name == name) {
         if (local.depth == -1) {
-          throw std::runtime_error("Circular reference"); // this should never happen; caught by TypeInference
+          throw std::runtime_error(
+              "Circular reference");  // this should never happen; caught by
+                                      // TypeInference
         }
         return i;
       }
@@ -218,9 +217,7 @@ private:
   }
 
  private:
-  void beginScope() {
-    scopeDepth++;
-  }
+  void beginScope() { scopeDepth++; }
 
   void endScope() {
     scopeDepth--;
@@ -235,24 +232,6 @@ private:
     }
   }
 
-  int addUpvalue(uint8_t index, bool isLocal) {
-    int upvalueCount = function.upvalues.size();
-    for (int i = 0; i < upvalueCount; i++) {
-      auto& upvalue = function.upvalues[i];
-      if (upvalue.index == index && upvalue.isLocal == isLocal) {
-        return i;
-      }
-    }
-
-    if (upvalueCount == 255) {
-      throw std::runtime_error("Too many closure variables in a function.");
-    }
-
-    auto upvalue = Upvalue(index, isLocal);
-    function.upvalues.push_back(upvalue);
-    return function.upvalues.size() - 1;
-  }
-
   int resolveUpvalue(VariableName name) {
     if (enclosingCompiler == nullptr) {
       return -1;
@@ -260,12 +239,12 @@ private:
     int local = enclosingCompiler->resolveLocal(name);
     if (local != -1) {
       enclosingCompiler->locals[local].isCaptured = true;
-      return addUpvalue(local, true);
+      return function.addUpvalue(Upvalue{local, true});
     }
 
     int upvalue = enclosingCompiler->resolveUpvalue(name);
     if (upvalue != -1) {
-      return addUpvalue(upvalue, false);
+      return function.addUpvalue(Upvalue{upvalue, false});
     }
 
     return -1;
@@ -280,8 +259,10 @@ private:
         break;
       }
 
-      if (local.name == name) { // this feels like it should be checked in an earlier phase
-        throw std::runtime_error("Invalid redeclaration of '" + stringInterner.get(name) + "'");
+      if (local.name ==
+          name) {  // this feels like it should be checked in an earlier phase
+        throw std::runtime_error("Invalid redeclaration of '" +
+                                 stringInterner.get(name) + "'");
       }
     }
 
@@ -303,8 +284,9 @@ private:
   }
 
   uint32_t addConstant(Value constant) {
-    function.chunk.constants.push_back(constant);
-    auto index = static_cast<uint32_t>(function.chunk.constants.size() - 1);
+    function.getChunk().constants.push_back(constant);
+    auto index =
+        static_cast<uint32_t>(function.getChunk().constants.size() - 1);
 
     // Check if index fits in 3 bytes (24 bits)
     constexpr uint32_t MAX_THREE_BYTES = 0xFFFFFF;  // 16,777,215
@@ -318,7 +300,7 @@ private:
 
   void emit(Opcode opcode, uint32_t operand = 0) {
     uint32_t instruction = static_cast<uint32_t>(opcode) | (operand << 8);
-    function.chunk.instructions.push_back(instruction);
+    function.getChunk().instructions.push_back(instruction);
   }
 };
-#endif //COMPILER_H
+#endif  // COMPILER_H

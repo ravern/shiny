@@ -19,9 +19,11 @@ add_library(core
         frontend/factory.h
         frontend/string_interner.h
         frontend/var.h
-        vm/vm.cc
         compiler.h
-        runtime/object.h
+        runtime/value.cc
+        runtime/object.cc
+        runtime/object_ref.cc
+        vm/vm.cc
         debug.h
 )
 

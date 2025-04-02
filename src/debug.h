@@ -61,9 +61,9 @@ std::string opcodeToString(Opcode opcode) {
 
 void printObject(const std::shared_ptr<Object>& obj) {
   switch (obj->getType()) {
-    case ObjectKind::Function: {
+    case ObjectType::Function: {
       auto fn = std::static_pointer_cast<FunctionObject>(obj);
-      std::cout << "<fn arity=" << fn->arity << " upvalues=" << fn->upvalues.size() << ">";
+      std::cout << "<fn arity=" << fn->getArity() << " upvalues=" << fn->getUpvalues().size() << ">";
       break;
     }
 
@@ -72,22 +72,22 @@ void printObject(const std::shared_ptr<Object>& obj) {
   }
 }
 
-void printValue(const Value& value) {
-  std::visit([](auto&& v) {
-    using T = std::decay_t<decltype(v)>;
-    if constexpr (std::is_same_v<T, std::monostate>) {
-      std::cout << "nil";
-    } else if constexpr (std::is_same_v<T, bool>) {
-      std::cout << (v ? "true" : "false");
-    } else if constexpr (std::is_same_v<T, int64_t>) {
-      std::cout << v;
-    } else if constexpr (std::is_same_v<T, double>) {
-      std::cout << v;
-    } else if constexpr (std::is_same_v<T, std::shared_ptr<Object>>) {
-      printObject(v);
-    }
-  }, value);
-}
+// void printValue(const Value& value) {
+//   std::visit([](auto&& v) {
+//     using T = std::decay_t<decltype(v)>;
+//     if constexpr (std::is_same_v<T, std::monostate>) {
+//       std::cout << "nil";
+//     } else if constexpr (std::is_same_v<T, bool>) {
+//       std::cout << (v ? "true" : "false");
+//     } else if constexpr (std::is_same_v<T, int64_t>) {
+//       std::cout << v;
+//     } else if constexpr (std::is_same_v<T, double>) {
+//       std::cout << v;
+//     } else if constexpr (std::is_same_v<T, std::shared_ptr<Object>>) {
+//       printObject(v);
+//     }
+//   }, value);
+// }
 
 void disassembleChunk(const Chunk& chunk, const std::string& name) {
   std::cout << "== " << name << " ==\n";
@@ -97,7 +97,7 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
     Opcode opcode = static_cast<Opcode>(instr & 0xFF);
     uint32_t operand = instr >> 8;
 
-    std::cout << std::setw(4) << offset << "  ";
+    std::cout << std::setw(4) << std::left << offset << "  ";
     std::string opname = opcodeToString(opcode);
     std::cout << std::setw(24) << std::left << opname;
 
@@ -116,11 +116,11 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
       case Opcode::OBJECT_SET_MEMBER:
       case Opcode::OBJECT_GET_METHOD:
         std::cout << operand;
-        if (opcode == Opcode::CONST && operand < chunk.constants.size()) {
-          std::cout << " '";
-          printValue(chunk.constants[operand]);
-          std::cout << "'";
-        }
+        // if (opcode == Opcode::CONST && operand < chunk.constants.size()) {
+        //   std::cout << " '";
+        //   printValue(chunk.constants[operand]);
+        //   std::cout << "'";
+        // }
         break;
 
       default:

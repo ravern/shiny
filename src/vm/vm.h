@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../bytecode.h"
-#include "value.h"
+#include "../runtime/value.h"
 
 namespace Shiny {
 

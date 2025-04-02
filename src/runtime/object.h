@@ -1,37 +1,55 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#pragma once
 
-struct Upvalue {
-  uint8_t index;
-  bool isLocal;
+#include <cstdint>
+#include <vector>
 
-  Upvalue(uint8_t index, bool isLocal) : index(index), isLocal(isLocal) {}
-};
+#include "../bytecode.h"
+#include "../frontend/string_interner.h"
 
-enum class ObjectKind {
+enum class ObjectType {
   Function,
 };
 
 class Object {
-public:
-  explicit Object(const ObjectKind kind) : type(kind) {}
+ public:
+  Object() = delete;
   virtual ~Object() = default;
 
-  ObjectKind getType() const { return type; }
+ public:
+  ObjectType getType() const;
 
-private:
-  ObjectKind type;
+ protected:
+  explicit Object(ObjectType kind);
+
+ private:
+  ObjectType type;
+};
+
+// FUNCTIONS
+
+struct Upvalue {
+  int index;
+  bool isLocal;
 };
 
 class FunctionObject : public Object {
-public:
-  FunctionObject(int arity)
-    : Object(ObjectKind::Function), arity(arity) {}
+ public:
+  FunctionObject(uint8_t arity);
 
-  int arity;
+ public:
+  uint8_t getArity() const;
+  const std::vector<Upvalue>& getUpvalues() const;
+  const Chunk& getChunk() const;
+  Chunk& getChunk();
+
+ public:
+  int addUpvalue(Upvalue upvalue);
+
+ private:
+  uint8_t arity;
   std::vector<Upvalue> upvalues;
   Chunk chunk;
-  // should name be a std::string or an Object?
-};
 
-#endif //OBJECT_H
+  // for error reporting and debugging
+  SymbolId name;
+};
