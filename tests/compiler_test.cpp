@@ -1,4 +1,4 @@
-#include "compiler.h"
+#include "frontend/compiler.h"
 
 #include <gtest/gtest.h>
 
@@ -12,11 +12,9 @@ TEST(CompilerTest, Test) {
   SymbolId xId = interner.intern("x");
   SymbolId yId = interner.intern("y");
   SymbolId zId = interner.intern("z");
-  auto ast = S::Block({
-    S::Declare(xId, E::Int("3")),
-    S::Declare(yId, E::Int("4")),
-    S::Declare(zId, E::Add(E::Var(xId), E::Var(yId)))
-  });
+  auto ast =
+      S::Block({S::Declare(xId, E::Int("3")), S::Declare(yId, E::Int("4")),
+                S::Declare(zId, E::Add(E::Var(xId), E::Var(yId)))});
 
   TypeInference inference = TypeInference(interner);
   inference.perform(*ast);

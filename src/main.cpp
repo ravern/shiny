@@ -1,57 +1,25 @@
+#include "frontend/compiler.h"
 #include "frontend/factory.h"
-
-#include <iostream>
-
-#include "frontend/expr.h"
-#include "frontend/ast_pretty_printer.h"
-#include "frontend/type_inference.h"
+#include "frontend/string_interner.h"
+#include "vm/vm.h"
 
 int main() {
   StringInterner interner;
-  SymbolId addId = interner.intern("add");
+
   SymbolId xId = interner.intern("x");
   SymbolId yId = interner.intern("y");
-  SymbolId resId = interner.intern("res");
   SymbolId zId = interner.intern("z");
-  SymbolId aId = interner.intern("a");
 
-  auto ast = S::Block({
-    // S::Declare(
-    //   zId,
-    //   E::Apply(
-    //     E::Var(addId),
-    //     {
-    //       E::Int("3"),
-    //       E::Int("4")
-    //     }
-    //   )
-    // ),
-    S::Function(
-      addId,
-      { Var(xId, T::Int()), Var(yId, T::Int()) },
-      T::Int(),
-      S::Block({
-        S::Declare(resId, E::Add(E::Var(xId), E::Var(yId))),
-        S::Return(E::Var(4))
-      })
-    ),
-    S::Declare(
-      zId,
-      E::Apply(
-        E::Var(addId),
-        {
-          E::Int("3"),
-          E::Int("4")
-        }
-      )
-    )
-  });
+  auto ast =
+      S::Block({S::Declare(xId, E::Int("3")), S::Declare(yId, E::Int("4")),
+                S::Declare(zId, E::Add(E::Var(xId), E::Var(yId)))});
 
-  TypeInference inference = TypeInference(interner);
-  inference.perform(*ast);
+  Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
+  auto rootFunction = ObjectRef(compiler.compile());
 
-  ASTPrettyPrinter printer(interner);
-  printer.print(*ast);
+  VM vm;
+  auto result = vm.evaluate(rootFunction);
+  std::cout << result.toInt() << std::endl;
 
   return 0;
 }

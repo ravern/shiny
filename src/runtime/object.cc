@@ -1,13 +1,16 @@
 #include "object.h"
 
-Object::Object(ObjectType kind) : type(kind) {}
-
-ObjectType Object::getType() const { return type; }
-
 // FUNCTIONS
 
-FunctionObject::FunctionObject(uint8_t arity)
-    : Object(ObjectType::Function), arity(arity) {}
+FunctionObject::FunctionObject(uint8_t arity) : arity(arity) {}
+
+FunctionObject::FunctionObject(const FunctionObject& other)
+    : arity(other.arity), upvalues(other.upvalues), chunk(other.chunk) {}
+
+FunctionObject::FunctionObject(FunctionObject&& other)
+    : arity(other.arity),
+      upvalues(std::move(other.upvalues)),
+      chunk(std::move(other.chunk)) {}
 
 uint8_t FunctionObject::getArity() const { return arity; }
 const Chunk& FunctionObject::getChunk() const { return chunk; }

@@ -19,12 +19,11 @@ add_library(core
         frontend/factory.h
         frontend/string_interner.h
         frontend/var.h
-        compiler.h
+        frontend/compiler.h
         runtime/value.cc
         runtime/object.cc
         runtime/object_ref.cc
         vm/vm.cc
-        debug.h
 )
 
 add_executable(shiny main.cpp)

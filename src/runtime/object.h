@@ -1,29 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <variant>
 #include <vector>
 
 #include "../bytecode.h"
 #include "../frontend/string_interner.h"
-
-enum class ObjectType {
-  Function,
-};
-
-class Object {
- public:
-  Object() = delete;
-  virtual ~Object() = default;
-
- public:
-  ObjectType getType() const;
-
- protected:
-  explicit Object(ObjectType kind);
-
- private:
-  ObjectType type;
-};
 
 // FUNCTIONS
 
@@ -32,9 +14,12 @@ struct Upvalue {
   bool isLocal;
 };
 
-class FunctionObject : public Object {
+class FunctionObject {
  public:
   FunctionObject(uint8_t arity);
+  FunctionObject(const FunctionObject& other);
+  FunctionObject(FunctionObject&& other);
+  ~FunctionObject() = default;
 
  public:
   uint8_t getArity() const;
@@ -53,3 +38,7 @@ class FunctionObject : public Object {
   // for error reporting and debugging
   SymbolId name;
 };
+
+// OBJECTS
+
+using Object = std::variant<FunctionObject>;

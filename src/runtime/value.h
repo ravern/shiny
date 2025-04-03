@@ -14,7 +14,7 @@ class Value {
  public:
   Value(int64_t i);
   Value(double d);
-  Value(ObjectRef obj);
+  Value(ObjectRef o);
 
  public:
   int64_t toInt() const;

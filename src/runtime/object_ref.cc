@@ -2,7 +2,8 @@
 
 #include "object_ref_inner.h"
 
-ObjectRef::ObjectRef(Object&& object) : inner(new ObjectRefInner{object, 1}) {}
+ObjectRef::ObjectRef(FunctionObject&& object)
+    : inner(new ObjectRefInner{std::move(object), 1}) {}
 
 ObjectRef::ObjectRef(const ObjectRef& other) : inner(other.inner) {
   inner = other.inner;
@@ -39,8 +40,10 @@ ObjectRef& ObjectRef::operator=(ObjectRef&& other) {
   return *this;
 }
 
-Object& ObjectRef::operator*() const { return inner->object; }
-Object* ObjectRef::operator->() const { return &inner->object; }
+const FunctionObject& ObjectRef::toFunction() const {
+  return std::get<FunctionObject>(inner->object);
+}
 
-Object* ObjectRef::get() const { return &inner->object; }
-uint64_t ObjectRef::getCount() const { return inner->refCount; }
+FunctionObject& ObjectRef::toFunction() {
+  return std::get<FunctionObject>(inner->object);
+}

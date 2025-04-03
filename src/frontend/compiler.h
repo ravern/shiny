@@ -2,11 +2,11 @@
 #define COMPILER_H
 #include <assert.h>
 
-#include "bytecode.h"
-#include "debug.h"
-#include "frontend/ast_visitor.h"
-#include "frontend/stmt.h"
-#include "runtime/object.h"
+#include "../bytecode.h"
+#include "../debug.h"
+#include "../frontend/ast_visitor.h"
+#include "../frontend/stmt.h"
+#include "../runtime/object.h"
 
 struct Local {
   VariableName name;

@@ -1,6 +1,9 @@
 #ifndef TYPE_H
 #define TYPE_H
+
 #include <iostream>
+#include <vector>
+#include <memory>
 
 using TypeVar = uint32_t;
 

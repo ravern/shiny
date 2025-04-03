@@ -1,5 +1,4 @@
-#ifndef DEBUG_H
-#define DEBUG_H
+#pragma once
 
 #include <iomanip>
 #include <iostream>
@@ -59,18 +58,18 @@ std::string opcodeToString(Opcode opcode) {
   }
 }
 
-void printObject(const std::shared_ptr<Object>& obj) {
-  switch (obj->getType()) {
-    case ObjectType::Function: {
-      auto fn = std::static_pointer_cast<FunctionObject>(obj);
-      std::cout << "<fn arity=" << fn->getArity() << " upvalues=" << fn->getUpvalues().size() << ">";
-      break;
-    }
+// void printObject(const std::shared_ptr<Object>& obj) {
+//   switch (obj->getType()) {
+//     case ObjectType::Function: {
+//       auto fn = std::static_pointer_cast<FunctionObject>(obj);
+//       std::cout << "<fn arity=" << fn->getArity() << " upvalues=" << fn->getUpvalues().size() << ">";
+//       break;
+//     }
 
-    default:
-      std::cout << "<unknown object>";
-  }
-}
+//     default:
+//       std::cout << "<unknown object>";
+//   }
+// }
 
 // void printValue(const Value& value) {
 //   std::visit([](auto&& v) {
@@ -130,5 +129,3 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
     std::cout << "\n";
   }
 }
-
-#endif //DEBUG_H

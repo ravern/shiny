@@ -1,17 +1,14 @@
 #pragma once
 
-#include "../bytecode.h"
 #include "../runtime/value.h"
 
-namespace Shiny {
+struct Frame {
+  ObjectRef function;
+  int ip;
+  int bp;
+};
 
 class VM {
  public:
-  Value evaluate(Program& program);
-
-  // disable copying
-  VM(const VM&) = delete;
-  VM& operator=(const VM&) = delete;
+  Value evaluate(ObjectRef function);
 };
-
-}  // namespace Shiny
