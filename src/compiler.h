@@ -94,9 +94,9 @@ class Compiler : public ASTVisitor<Compiler, void, void> {
     auto name = expr.var.name;
     int index = resolveLocal(name);
     if (index != -1) {
-      emit(Opcode::STORE, index);
+      emit(Opcode::LOAD, index);
     } else if ((index = resolveUpvalue(name) != -1)) {
-      emit(Opcode::UPVALUE_STORE, index);
+      emit(Opcode::UPVALUE_LOAD, index);
     } else {
       throw std::runtime_error(
           "Variable name not found");  // this should never happen; caught by
@@ -168,9 +168,9 @@ class Compiler : public ASTVisitor<Compiler, void, void> {
     auto name = stmt.var.name;
     int index = resolveLocal(name);
     if (index != -1) {
-      emit(Opcode::LOAD, index);
+      emit(Opcode::STORE, index);
     } else if ((index = resolveUpvalue(name) != -1)) {
-      emit(Opcode::UPVALUE_LOAD, index);
+      emit(Opcode::UPVALUE_STORE, index);
     } else {
       throw std::runtime_error(
           "Variable name not found");  // this should never happen; caught by
