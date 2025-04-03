@@ -104,6 +104,15 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
       case Opcode::CONST:
       case Opcode::CLOSURE:
       case Opcode::BUILT_IN:
+      case Opcode::ADD:
+      case Opcode::SUB:
+      case Opcode::MUL:
+      case Opcode::DIV:
+      case Opcode::NEG:
+      case Opcode::LT:
+      case Opcode::LTE:
+      case Opcode::GT:
+      case Opcode::GTE:
       case Opcode::LOAD:
       case Opcode::STORE:
       case Opcode::CALL:

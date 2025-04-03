@@ -6,6 +6,7 @@
 #include "../debug.h"
 #include "../frontend/ast_visitor.h"
 #include "../frontend/stmt.h"
+#include "../frontend/factory.h"
 #include "../runtime/object.h"
 
 struct Local {
@@ -17,7 +18,7 @@ struct Local {
       : name(name), depth(depth), isCaptured(is_captured) {}
 };
 
-class Compiler : public ASTVisitor<Compiler, void, void> {
+class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
  public:
   enum class FunctionKind { TopLevel, Function, Method, Initializer };
 
@@ -74,23 +75,29 @@ class Compiler : public ASTVisitor<Compiler, void, void> {
   }
 
   // Expression visitors
-  void visitIntegerExpr(IntegerExpr& expr) {
+  std::shared_ptr<Type> visitIntegerExpr(IntegerExpr& expr) {
     int64_t value = expr.getValue();
     uint32_t constantIndex = addConstant(value);
     emit(Opcode::CONST, constantIndex);
+
+    return T::Int();
   }
 
-  void visitDoubleExpr(DoubleExpr& expr) {
+  std::shared_ptr<Type> visitDoubleExpr(DoubleExpr& expr) {
     double value = expr.getValue();
     uint32_t constantIndex = addConstant(value);
     emit(Opcode::CONST, constantIndex);
+
+    return T::Double();
   }
 
-  void visitBoolExpr(BoolExpr& expr) {
+  std::shared_ptr<Type> visitBoolExpr(BoolExpr& expr) {
     emit(expr.getValue() ? Opcode::TRUE : Opcode::FALSE);
+
+    return T::Bool();
   }
 
-  void visitVariableExpr(VariableExpr& expr) {
+  std::shared_ptr<Type> visitVariableExpr(VariableExpr& expr) {
     auto name = expr.var.name;
     int index = resolveLocal(name);
     if (index != -1) {
@@ -102,39 +109,54 @@ class Compiler : public ASTVisitor<Compiler, void, void> {
           "Variable name not found");  // this should never happen; caught by
                                        // TypeInference
     }
+
+    return expr.var.type.value();
   }
 
-  void visitApplyExpr(ApplyExpr& expr) {
+  std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
     for (auto& arg : expr.arguments) {
       visit(*arg);
     }
     visit(*expr.function);
     emit(Opcode::CALL, static_cast<uint32_t>(expr.arguments.size()));
+
+    auto var = static_cast<VariableExpr*>(expr.function.get());
+    return var->var.type.value();
   }
 
-  void visitBinaryExpr(BinaryExpr& expr) {
-    visit(*expr.left);
+  std::shared_ptr<Type> visitBinaryExpr(BinaryExpr& expr) {
+    auto lhsType = visit(*expr.left);
     visit(*expr.right);
 
     switch (expr.op) {
-      case BinaryOperator::Add:
-        emit(Opcode::ADD);
-        break;
-      case BinaryOperator::Minus:
-        emit(Opcode::SUB);
-        break;
+      case BinaryOperator::Add: {
+        uint32_t opType =
+          lhsType->kind == TypeKind::Integer ? 1 :
+          lhsType->kind == TypeKind::Double  ? 2 :
+          throw std::runtime_error("Unexpected TypeKind");
+        emit(Opcode::ADD, opType);
+        return lhsType;
+      }
+      case BinaryOperator::Minus: {
+        uint32_t opType =
+          lhsType->kind == TypeKind::Integer ? 1 :
+          lhsType->kind == TypeKind::Double  ? 2 :
+          throw std::runtime_error("Unexpected TypeKind");
+        emit(Opcode::SUB, opType);
+        return lhsType;
+      }
       case BinaryOperator::And:
         emit(Opcode::AND);
-        break;
+        return lhsType;
       case BinaryOperator::Or:
         emit(Opcode::OR);
-        break;
+        return lhsType;
       default:
         throw std::runtime_error("Unknown BinaryOperator");
     }
   }
 
-  void visitUnaryExpr(UnaryExpr& expr) {
+  std::shared_ptr<Type> visitUnaryExpr(UnaryExpr& expr) {
     visit(*expr.operand);
 
     switch (expr.op) {
