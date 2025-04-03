@@ -9,84 +9,100 @@
 
 std::string opcodeToString(Opcode opcode) {
   switch (opcode) {
-    case Opcode::NO_OP: return "NO_OP";
-    case Opcode::NIL: return "NIL";
-    case Opcode::TRUE: return "TRUE";
-    case Opcode::FALSE: return "FALSE";
-    case Opcode::ARRAY: return "ARRAY";
-    case Opcode::DICT: return "DICT";
-    case Opcode::CONST: return "CONST";
-    case Opcode::CLOSURE: return "CLOSURE";
-    case Opcode::BUILT_IN: return "BUILT_IN";
-    case Opcode::ADD: return "ADD";
-    case Opcode::SUB: return "SUB";
-    case Opcode::MUL: return "MUL";
-    case Opcode::DIV: return "DIV";
-    case Opcode::MOD: return "MOD";
-    case Opcode::NEG: return "NEG";
-    case Opcode::EQ: return "EQ";
-    case Opcode::NEQ: return "NEQ";
-    case Opcode::LT: return "LT";
-    case Opcode::LTE: return "LTE";
-    case Opcode::GT: return "GT";
-    case Opcode::GTE: return "GTE";
-    case Opcode::AND: return "AND";
-    case Opcode::OR: return "OR";
-    case Opcode::NOT: return "NOT";
-    case Opcode::BIT_AND: return "BIT_AND";
-    case Opcode::BIT_OR: return "BIT_OR";
-    case Opcode::BIT_XOR: return "BIT_XOR";
-    case Opcode::BIT_NOT: return "BIT_NOT";
-    case Opcode::SHIFT_LEFT: return "SHIFT_LEFT";
-    case Opcode::SHIFT_RIGHT: return "SHIFT_RIGHT";
-    case Opcode::LOAD: return "LOAD";
-    case Opcode::STORE: return "STORE";
-    case Opcode::DUP: return "DUP";
-    case Opcode::POP: return "POP";
-    case Opcode::TEST: return "TEST";
-    case Opcode::JUMP: return "JUMP";
-    case Opcode::CALL: return "CALL";
-    case Opcode::TAIL_CALL: return "TAIL_CALL";
-    case Opcode::RETURN: return "RETURN";
-    case Opcode::UPVALUE_LOAD: return "UPVALUE_LOAD";
-    case Opcode::UPVALUE_STORE: return "UPVALUE_STORE";
-    case Opcode::UPVALUE_CLOSE: return "UPVALUE_CLOSE";
-    case Opcode::OBJECT_GET_MEMBER: return "OBJECT_GET_MEMBER";
-    case Opcode::OBJECT_SET_MEMBER: return "OBJECT_SET_MEMBER";
-    case Opcode::OBJECT_GET_METHOD: return "OBJECT_GET_METHOD";
-    default: return "UNKNOWN";
+    case Opcode::NO_OP:
+      return "NO_OP";
+    case Opcode::NIL:
+      return "NIL";
+    case Opcode::TRUE:
+      return "TRUE";
+    case Opcode::FALSE:
+      return "FALSE";
+    case Opcode::ARRAY:
+      return "ARRAY";
+    case Opcode::DICT:
+      return "DICT";
+    case Opcode::CONST:
+      return "CONST";
+    case Opcode::CLOSURE:
+      return "CLOSURE";
+    case Opcode::BUILT_IN:
+      return "BUILT_IN";
+    case Opcode::ADD:
+      return "ADD";
+    case Opcode::SUB:
+      return "SUB";
+    case Opcode::MUL:
+      return "MUL";
+    case Opcode::DIV:
+      return "DIV";
+    case Opcode::MOD:
+      return "MOD";
+    case Opcode::NEG:
+      return "NEG";
+    case Opcode::EQ:
+      return "EQ";
+    case Opcode::NEQ:
+      return "NEQ";
+    case Opcode::LT:
+      return "LT";
+    case Opcode::LTE:
+      return "LTE";
+    case Opcode::GT:
+      return "GT";
+    case Opcode::GTE:
+      return "GTE";
+    case Opcode::AND:
+      return "AND";
+    case Opcode::OR:
+      return "OR";
+    case Opcode::NOT:
+      return "NOT";
+    case Opcode::BIT_AND:
+      return "BIT_AND";
+    case Opcode::BIT_OR:
+      return "BIT_OR";
+    case Opcode::BIT_XOR:
+      return "BIT_XOR";
+    case Opcode::BIT_NOT:
+      return "BIT_NOT";
+    case Opcode::SHIFT_LEFT:
+      return "SHIFT_LEFT";
+    case Opcode::SHIFT_RIGHT:
+      return "SHIFT_RIGHT";
+    case Opcode::LOAD:
+      return "LOAD";
+    case Opcode::STORE:
+      return "STORE";
+    case Opcode::DUP:
+      return "DUP";
+    case Opcode::POP:
+      return "POP";
+    case Opcode::TEST:
+      return "TEST";
+    case Opcode::JUMP:
+      return "JUMP";
+    case Opcode::CALL:
+      return "CALL";
+    case Opcode::TAIL_CALL:
+      return "TAIL_CALL";
+    case Opcode::RETURN:
+      return "RETURN";
+    case Opcode::UPVALUE_LOAD:
+      return "UPVALUE_LOAD";
+    case Opcode::UPVALUE_STORE:
+      return "UPVALUE_STORE";
+    case Opcode::UPVALUE_CLOSE:
+      return "UPVALUE_CLOSE";
+    case Opcode::OBJECT_GET_MEMBER:
+      return "OBJECT_GET_MEMBER";
+    case Opcode::OBJECT_SET_MEMBER:
+      return "OBJECT_SET_MEMBER";
+    case Opcode::OBJECT_GET_METHOD:
+      return "OBJECT_GET_METHOD";
+    default:
+      return "UNKNOWN";
   }
 }
-
-// void printObject(const std::shared_ptr<Object>& obj) {
-//   switch (obj->getType()) {
-//     case ObjectType::Function: {
-//       auto fn = std::static_pointer_cast<FunctionObject>(obj);
-//       std::cout << "<fn arity=" << fn->getArity() << " upvalues=" << fn->getUpvalues().size() << ">";
-//       break;
-//     }
-
-//     default:
-//       std::cout << "<unknown object>";
-//   }
-// }
-
-// void printValue(const Value& value) {
-//   std::visit([](auto&& v) {
-//     using T = std::decay_t<decltype(v)>;
-//     if constexpr (std::is_same_v<T, std::monostate>) {
-//       std::cout << "nil";
-//     } else if constexpr (std::is_same_v<T, bool>) {
-//       std::cout << (v ? "true" : "false");
-//     } else if constexpr (std::is_same_v<T, int64_t>) {
-//       std::cout << v;
-//     } else if constexpr (std::is_same_v<T, double>) {
-//       std::cout << v;
-//     } else if constexpr (std::is_same_v<T, std::shared_ptr<Object>>) {
-//       printObject(v);
-//     }
-//   }, value);
-// }
 
 void disassembleChunk(const Chunk& chunk, const std::string& name) {
   std::cout << "== " << name << " ==\n";
@@ -122,14 +138,42 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
       case Opcode::UPVALUE_STORE:
       case Opcode::OBJECT_GET_MEMBER:
       case Opcode::OBJECT_SET_MEMBER:
-      case Opcode::OBJECT_GET_METHOD:
+      case Opcode::OBJECT_GET_METHOD: {
         std::cout << operand;
-        // if (opcode == Opcode::CONST && operand < chunk.constants.size()) {
-        //   std::cout << " '";
-        //   printValue(chunk.constants[operand]);
-        //   std::cout << "'";
-        // }
+        switch (opcode) {
+          case Opcode::ADD:
+          case Opcode::SUB:
+          case Opcode::MUL:
+          case Opcode::DIV:
+          case Opcode::NEG:
+          case Opcode::LT:
+          case Opcode::LTE:
+          case Opcode::GT:
+          case Opcode::GTE: {
+            switch (operand) {
+              case 1:
+                std::cout << " (int)";
+                break;
+              case 2:
+                std::cout << " (double)";
+                break;
+              case 3:
+                std::cout << " (string)";
+                break;
+              case 4:
+                std::cout << " (array)";
+                break;
+              default:
+                std::cout << " (unknown)";
+                break;
+            }
+          }
+
+          default:
+            break;
+        }
         break;
+      }
 
       default:
         break;

@@ -157,15 +157,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitUnaryExpr(UnaryExpr& expr) {
-    visit(*expr.operand);
+    auto type = visit(*expr.operand);
 
     switch (expr.op) {
       case UnaryOperator::Negate:
         emit(Opcode::NEG);
-        break;
+        return type;
       case UnaryOperator::Not:
         emit(Opcode::NOT);
-        break;
+        return type;
       default:
         throw std::runtime_error("Unknown UnaryOperator");
     }
