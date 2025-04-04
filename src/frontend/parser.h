@@ -10,7 +10,6 @@ class Parser {
   Token current;
   Token previous;
   bool hadError = false;
-  bool panicMode = false;
 
  public:
   explicit Parser(Scanner& scanner, StringInterner& strings)
@@ -22,6 +21,11 @@ class Parser {
   }
 
  private:
+  class ParseError : public Error {
+   public:
+    explicit ParseError() : Error("") {}
+  };
+
   std::shared_ptr<BlockStmt> program() {
     auto stmts = statements();
     return S::Block(stmts);
@@ -37,22 +41,24 @@ class Parser {
   std::vector<std::shared_ptr<Stmt>> statements() {
     std::vector<std::shared_ptr<Stmt>> statements;
     while (current.type != TOKEN_EOF) {
-      if (!current.isAtStartOfLine) {
-        errorAtCurrent("Statement must begin on a new line");
-        return {};
-      }
       statements.push_back(statement());
     }
     return statements;
   };
 
   std::shared_ptr<Stmt> statement() {
-    if (match(TOKEN_VAR)) {
-      return declareStatement();
+    try {
+      if (!current.isAtStartOfLine) {
+        throw errorAtCurrent("Statement must begin on a new line");
+      }
+      if (match(TOKEN_VAR)) {
+        return declareStatement();
+      }
+      throw errorAtCurrent("Expected statement");
+    } catch (const ParseError& e) {
+      synchronize();
+      return nullptr;
     }
-    errorAtCurrent("Expected statement");
-    advance(); // TODO: synchronize
-    return nullptr;
   }
 
   std::shared_ptr<Stmt> declareStatement() {
@@ -140,26 +146,21 @@ class Parser {
       consume(TOKEN_RIGHT_PAREN, "Expected ')'");
       return expr;
     }
-    errorAtCurrent("Expected expression");
-    return nullptr;
+    throw errorAtCurrent("Expected expression");
   }
 
   void advance() {
     previous = current;
-    while (true) {
-      try {
-        current = scanner.scan();
-        break;
-      } catch (ScanError& e) {
-        errorAt(e.lexeme, e.line, e.what());
-      }
+    try {
+      current = scanner.scan();
+    } catch (ScanError& e) {
+      throw errorAt(e.lexeme, e.line, e.what());
     }
   }
 
   void consume(TokenType type, std::string message) {
     if (current.type != type) {
-      errorAtCurrent(message);
-      return;
+      throw errorAtCurrent(message);
     }
     advance();
   }
@@ -174,17 +175,19 @@ class Parser {
     return true;
   }
 
-  void errorAtPrevious(std::string message) { errorAt(previous, message); }
-
-  void errorAtCurrent(std::string message) { errorAt(current, message); }
-
-  void errorAt(Token& token, std::string message) {
-    errorAt(token.lexeme, token.type == TOKEN_EOF ? -1 : token.line, message);
+  ParseError errorAtPrevious(std::string message) {
+    return errorAt(previous, message);
   }
 
-  void errorAt(std::string_view lexeme, int line, std::string message) {
-    if (panicMode) return;
-    panicMode = true;
+  ParseError errorAtCurrent(std::string message) {
+    return errorAt(current, message);
+  }
+
+  ParseError errorAt(Token& token, std::string message) {
+    return errorAt(token.lexeme, token.type == TOKEN_EOF ? -1 : token.line, message);
+  }
+
+  ParseError errorAt(std::string_view lexeme, int line, std::string message) {
     hadError = true;
 
     // Extract the full line of source where the error occurred.
@@ -216,29 +219,21 @@ class Parser {
 
     std::cerr << "    " << lineText << "\n";
     std::cerr << "    " << std::string(tokenStartColumn, ' ') << "^\n";
+
+    return ParseError();
   }
 
-  // private void synchronize() {
-  //   advance();
-  //
-  //   while (!isAtEnd()) {
-  //     if (previous().type == SEMICOLON) return;
-  //
-  //     switch (peek().type) {
-  //       case CLASS:
-  //       case FUN:
-  //       case VAR:
-  //       case FOR:
-  //       case IF:
-  //       case WHILE:
-  //       case PRINT:
-  //       case RETURN:
-  //         return;
-  //     }
-  //
-  //     advance();
-  //   }
-  // }
+  void synchronize() {
+    advance();
+    while (current.type != TOKEN_EOF) {
+      switch (current.type) {
+        case TOKEN_VAR:
+          return;
+        default:
+          advance();
+      }
+    }
+  }
 };
 
 #endif  // PARSER_H
