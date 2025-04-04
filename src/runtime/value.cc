@@ -1,30 +1,45 @@
 #include "value.h"
 
-#include <cstdint>
-#include <utility>
+#include <variant>
 
-const Value Value::NIL = Value((uint64_t)0);
-const Value Value::TRUE = Value((uint64_t)1);
-const Value Value::FALSE = Value((uint64_t)2);
+#include "object_ptr.h"
 
-Value::Value(uint64_t raw) : raw(raw) {}
-Value::Value(bool b) { b ? *this = TRUE : *this = FALSE; }
-Value::Value(int64_t i) : raw(reinterpret_cast<uint64_t &>(i)) {}
-Value::Value(double d) : raw(reinterpret_cast<uint64_t &>(d)) {}
+const Value Value::NIL(uint64_t(MASK_NAN | TAG_NIL));
+const Value Value::TRUE(uint64_t(MASK_NAN | TAG_TRUE));
+const Value Value::FALSE(uint64_t(MASK_NAN | TAG_FALSE));
 
-template <typename T>
-Value::Value(ObjectPtr<T> &&o)
-    : raw(reinterpret_cast<uint64_t &>(std::move(o))) {}
-
-uint64_t Value::toRaw() const { return raw; }
-bool Value::toBool() const { return *this == TRUE; }
-int64_t Value::toInt() const { return reinterpret_cast<const int64_t &>(raw); }
-double Value::toDouble() const { return reinterpret_cast<const double &>(raw); }
-
-template <typename T>
-ObjectPtr<T> &Value::toObject() {
-  return reinterpret_cast<ObjectPtr<T> &>(raw);
+Value::~Value() {
+  if (isObject()) {
+    ObjectPtr<std::monostate>::remember((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
+  }
 }
 
-bool Value::operator==(const Value &other) const { return raw == other.raw; }
-bool Value::operator!=(const Value &other) const { return raw != other.raw; }
+Value::Value(const Value& other) {
+  if (other.isObject()) {
+    ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
+    initObject<std::monostate>(std::move(ptr));
+  } else {
+    raw = other.raw;
+  }
+}
+
+Value::Value(Value&& other) {
+  raw = other.raw;
+  other = Value::NIL;
+}
+
+Value& Value::operator=(const Value& other) {
+  if (other.isObject()) {
+    ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
+    initObject<std::monostate>(std::move(ptr));
+  } else {
+    raw = other.raw;
+  }
+  return *this;
+}
+
+Value& Value::operator=(Value&& other) {
+  raw = other.raw;
+  other.raw = 0;
+  return *this;
+}

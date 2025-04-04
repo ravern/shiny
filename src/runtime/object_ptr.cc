@@ -1,65 +1,87 @@
-#include "object_ref.h"
+#include "object_ptr.h"
 
-ObjectRef::ObjectRef(FunctionObject&& object)
-    : inner(new ObjectRefInner{std::move(object), 1}) {}
-ObjectRef::ObjectRef(ClosureObject&& object)
-    : inner(new ObjectRefInner{std::move(object), 1}) {}
+#include <iostream>
+#include <variant>
 
-ObjectRef::ObjectRef(const ObjectRef& other) : inner(other.inner) {
-  inner = other.inner;
-  if (inner != nullptr) {
-    ++inner->refCount;
+template <typename T>
+ObjectPtr<T>::ObjectPtr() : ptr(nullptr) {}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(T&& o) : ptr(new Object(std::move(o))) {}
+
+template <>
+ObjectPtr<std::monostate>::ObjectPtr(std::monostate&& o) : ptr(nullptr) {}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(uint64_t raw) : ptr(std::bit_cast<Object*>(raw)) {
+  ptr->strongCount++;
+}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(const ObjectPtr& other) : ptr(other.ptr) {
+  ptr->strongCount++;
+}
+
+template <typename T>
+ObjectPtr<T>::ObjectPtr(ObjectPtr&& other) : ptr(other.ptr) {
+  other.ptr = nullptr;
+}
+
+template <typename T>
+ObjectPtr<T>::~ObjectPtr() noexcept(false) {
+  if (ptr == nullptr) {
+    return;
+  }
+  if (ptr->strongCount == 0) {
+    throw std::runtime_error("Tried to decrement strong count of 0");
+  }
+  ptr->strongCount--;
+  if (ptr->strongCount == 0 && ptr->weakCount == 0) {
+    delete ptr;
   }
 }
 
-ObjectRef::ObjectRef(ObjectRef&& other) : inner(other.inner) {
-  inner = other.inner;
-  other.inner = nullptr;
-}
-
-ObjectRef::~ObjectRef() {
-  if (inner) {
-    --inner->refCount;
-    if (inner->refCount == 0) {
-      delete inner;
-    }
-  }
-}
-
-ObjectRef& ObjectRef::operator=(const ObjectRef& other) {
-  inner = other.inner;
-  if (inner != nullptr) {
-    ++inner->refCount;
+template <typename T>
+ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr& other) {
+  ptr = other.ptr;
+  if (ptr != nullptr) {
+    ptr->strongCount++;
   }
   return *this;
 }
 
-ObjectRef& ObjectRef::operator=(ObjectRef&& other) {
-  inner = other.inner;
-  other.inner = nullptr;
+template <typename T>
+ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr&& other) {
+  ptr = other.ptr;
+  other.ptr = nullptr;
   return *this;
 }
 
-bool ObjectRef::isFunction() const {
-  return std::holds_alternative<FunctionObject>(inner->object);
+template <typename T>
+T* ObjectPtr<T>::operator->() {
+  return ptr->get<T>();
 }
 
-bool ObjectRef::isClosure() const {
-  return std::holds_alternative<ClosureObject>(inner->object);
+template <>
+std::monostate* ObjectPtr<std::monostate>::operator->() {
+  return nullptr;
 }
 
-const FunctionObject& ObjectRef::toFunction() const {
-  return std::get<FunctionObject>(inner->object);
+template <typename T>
+ObjectPtr<T> ObjectPtr<T>::remember(uint64_t raw) {
+  ObjectPtr<T> ptr;
+  ptr.ptr = std::bit_cast<Object*>(raw);
+  return ptr;
 }
 
-const ClosureObject& ObjectRef::toClosure() const {
-  return std::get<ClosureObject>(inner->object);
+template <typename T>
+uint64_t ObjectPtr<T>::forget() {
+  uint64_t raw = std::bit_cast<uint64_t>(ptr);
+  ptr = nullptr;
+  return raw;
 }
 
-FunctionObject& ObjectRef::toFunction() {
-  return std::get<FunctionObject>(inner->object);
-}
-
-ClosureObject& ObjectRef::toClosure() {
-  return std::get<ClosureObject>(inner->object);
-}
+template class ObjectPtr<FunctionObject>;
+template class ObjectPtr<UpvalueObject>;
+template class ObjectPtr<ClosureObject>;
+template class ObjectPtr<std::monostate>;

@@ -1,27 +1,33 @@
 #include "vm.h"
 
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 
 #include "../runtime/object.h"
+#include "../runtime/object_ptr.h"
+#include "../runtime/value.h"
 
-Value VM::evaluate(ObjectRef function) {
-  ObjectRef currentFunction = function;
-  Chunk& chunk = currentFunction.toFunction().getChunk();
-  int ip = 0;
-  int bp = 0;
-  std::vector<Value> stack;
-  std::vector<Frame> callStack;
-  std::vector<std::shared_ptr<LiveUpvalue>> upvalueStack;
+VM::VM() {}
+
+Value VM::evaluate(ObjectPtr<FunctionObject> function) {
+  // Initialize the VM state for a new evaluation
+  closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
+  ip = 0;
+  bp = 0;
+  Chunk& chunk = closure->getFunction()->getChunk();
 
   while (true) {
+    // Fetch and decode the current instruction
     Instruction instruction = chunk.instructions[ip++];
     Opcode opcode = static_cast<Opcode>(instruction & 0xFF);
     uint32_t operand = instruction >> 8;
+
+    // Execute the instruction
     switch (opcode) {
       case Opcode::NO_OP:
         break;
+
+      // Opcodes that push new values onto the stack
       case Opcode::NIL: {
         stack.push_back(Value::NIL);
         break;
@@ -35,44 +41,38 @@ Value VM::evaluate(ObjectRef function) {
         break;
       }
       case Opcode::CONST: {
-        std::cout << "pushing constant " << chunk.constants[operand].toRaw()
-                  << " to stack slot " << stack.size() << std::endl;
         stack.push_back(chunk.constants[operand]);
         break;
       }
       case Opcode::CLOSURE: {
-        ObjectRef functionObject = chunk.constants[operand].toObject();
-        FunctionObject& function = functionObject.toFunction();
+        ObjectPtr<FunctionObject> newFunction =
+            chunk.constants[operand].asObject<FunctionObject>();
 
-        std::vector<std::shared_ptr<LiveUpvalue>> upvalues;
-        for (auto& upvalue : function.getUpvalues()) {
+        // Capture all the upvalues to create the closure
+        std::vector<ObjectPtr<UpvalueObject>> upvalues;
+        for (auto& upvalue : newFunction->getUpvalues()) {
           if (upvalue.isLocal) {
             int stackSlot = bp + upvalue.index;
-            std::shared_ptr<LiveUpvalue> liveUpvalue =
-                std::make_shared<LiveUpvalue>((uint64_t)0, &stack[stackSlot]);
-            upvalueStack.push_back(liveUpvalue);
-            upvalues.push_back(liveUpvalue);
+            ObjectPtr<UpvalueObject> upvalueObject(
+                std::move(UpvalueObject(&stack[stackSlot])));
+            upvalueStack.push_back(upvalueObject);
+            upvalues.push_back(upvalueObject);
           } else {
-            ClosureObject& parentClosure =
-                callStack.back().function.toClosure();
-            std::shared_ptr<LiveUpvalue> parentUpvalue =
-                parentClosure.getUpvalues()[upvalue.index];
+            ObjectPtr<ClosureObject> parentClosure = callStack.back().closure;
+            ObjectPtr<UpvalueObject> parentUpvalue =
+                parentClosure->getUpvalues()[upvalue.index];
             upvalues.push_back(parentUpvalue);
           }
         }
 
-        std::cout << "pushing closure to stack slot " << stack.size()
-                  << std::endl;
-        stack.push_back(Value(
-            ObjectRef(ClosureObject(functionObject, std::move(upvalues)))));
-        std::cout << "stack size: " << stack.size() << std::endl;
-        Value back = stack.back();
-        std::cout << "is closure: " << back.toObject().isClosure()
-                  << ", is function: " << back.toObject().isFunction()
-                  << std::endl;
+        // FIXME: what a monstrosity
+        stack.push_back(Value(std::move(ObjectPtr<ClosureObject>(
+            std::move(ClosureObject(newFunction, std::move(upvalues)))))));
 
         break;
       }
+
+      // Opcodes to perform arithmetic
       case Opcode::ADD: {
         Value b = stack.back();
         stack.pop_back();
@@ -80,10 +80,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() + b.toInt());
+            stack.push_back(a.asInt() + b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() + b.toDouble());
+            stack.push_back(a.asDouble() + b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -97,10 +97,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() - b.toInt());
+            stack.push_back(a.asInt() - b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() - b.toDouble());
+            stack.push_back(a.asDouble() - b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -114,10 +114,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() * b.toInt());
+            stack.push_back(a.asInt() * b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() * b.toDouble());
+            stack.push_back(a.asDouble() * b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -131,10 +131,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() / b.toInt());
+            stack.push_back(a.asInt() / b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() / b.toDouble());
+            stack.push_back(a.asDouble() / b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -146,7 +146,7 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() % b.toInt());
+        stack.push_back(a.asInt() % b.asInt());
         break;
       }
       case Opcode::NEG: {
@@ -154,10 +154,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(-a.toInt());
+            stack.push_back(-a.asInt());
             break;
           case 2:
-            stack.push_back(-a.toDouble());
+            stack.push_back(-a.asDouble());
             break;
         }
         break;
@@ -184,10 +184,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() < b.toInt());
+            stack.push_back(a.asInt() < b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() < b.toDouble());
+            stack.push_back(a.asDouble() < b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -201,10 +201,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() <= b.toInt());
+            stack.push_back(a.asInt() <= b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() <= b.toDouble());
+            stack.push_back(a.asDouble() <= b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -218,10 +218,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() > b.toInt());
+            stack.push_back(a.asInt() > b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() > b.toDouble());
+            stack.push_back(a.asDouble() > b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -235,10 +235,10 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         switch (operand) {
           case 1:
-            stack.push_back(a.toInt() >= b.toInt());
+            stack.push_back(a.asInt() >= b.asInt());
             break;
           case 2:
-            stack.push_back(a.toDouble() >= b.toDouble());
+            stack.push_back(a.asDouble() >= b.asDouble());
             break;
           default:
             throw std::runtime_error("Unknown operand");
@@ -250,7 +250,7 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toBool() && b.toBool());
+        stack.push_back(a.asBool() && b.asBool());
         break;
       }
       case Opcode::OR: {
@@ -258,13 +258,13 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toBool() || b.toBool());
+        stack.push_back(a.asBool() || b.asBool());
         break;
       }
       case Opcode::NOT: {
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(!a.toBool());
+        stack.push_back(!a.asBool());
         break;
       }
       case Opcode::BIT_AND: {
@@ -272,7 +272,7 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() & b.toInt());
+        stack.push_back(a.asInt() & b.asInt());
         break;
       }
       case Opcode::BIT_OR: {
@@ -280,7 +280,7 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() | b.toInt());
+        stack.push_back(a.asInt() | b.asInt());
         break;
       }
       case Opcode::BIT_XOR: {
@@ -288,13 +288,13 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() ^ b.toInt());
+        stack.push_back(a.asInt() ^ b.asInt());
         break;
       }
       case Opcode::BIT_NOT: {
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(~a.toInt());
+        stack.push_back(~a.asInt());
         break;
       }
       case Opcode::SHIFT_LEFT: {
@@ -302,7 +302,7 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() << b.toInt());
+        stack.push_back(a.asInt() << b.asInt());
         break;
       }
       case Opcode::SHIFT_RIGHT: {
@@ -310,14 +310,11 @@ Value VM::evaluate(ObjectRef function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        stack.push_back(a.toInt() >> b.toInt());
+        stack.push_back(a.asInt() >> b.asInt());
         break;
       }
       case Opcode::LOAD: {
         int stackSlot = bp + operand;
-        std::cout << "loading value " << stack[stackSlot].toRaw()
-                  << " from stack slot " << stackSlot << " to stack slot "
-                  << stack.size() << std::endl;
         stack.push_back(stack[stackSlot]);
         break;
       }
@@ -338,7 +335,7 @@ Value VM::evaluate(ObjectRef function) {
       case Opcode::TEST: {
         Value condition = stack.back();
         stack.pop_back();
-        if (condition.toBool()) {
+        if (condition.asBool()) {
           ip++;
         }
         break;
@@ -348,24 +345,14 @@ Value VM::evaluate(ObjectRef function) {
         break;
       }
       case Opcode::CALL: {
-        callStack.push_back({currentFunction, ip, bp});
-        std::cout << "operand: " << operand << std::endl;
+        callStack.push_back({closure, ip, bp});
         int functionStackSlot = stack.size() - operand - 1;
-        std::cout << "stack size: " << stack.size() << std::endl;
-        std::cout << "function stack slot: " << functionStackSlot << std::endl;
-        std::cout << "top of stack: " << stack.back().toRaw() << std::endl;
-        std::cout << "second top of stack: " << stack[stack.size() - 2].toRaw()
-                  << std::endl;
-        ObjectRef newFunction = stack[functionStackSlot].toObject();
-        std::cout << "is closure: " << newFunction.isClosure()
-                  << ", is function: " << newFunction.isFunction() << std::endl;
-        currentFunction = newFunction;
-        chunk = currentFunction.isFunction()
-                    ? currentFunction.toFunction().getChunk()
-                    : currentFunction.toClosure().getFunction().getChunk();
-        bp = functionStackSlot;
+        ObjectPtr<ClosureObject> newClosure =
+            stack[functionStackSlot].asObject<ClosureObject>();
+        closure = newClosure;
+        chunk = closure->getFunction()->getChunk();
         ip = 0;
-        std::cout << "--------------------------------" << std::endl;
+        bp = functionStackSlot;
         break;
       }
       case Opcode::RETURN: {
@@ -374,12 +361,11 @@ Value VM::evaluate(ObjectRef function) {
         }
         Frame frame = callStack.back();
         callStack.pop_back();
-        currentFunction = frame.function;
-        chunk = currentFunction.isFunction()
-                    ? currentFunction.toFunction().getChunk()
-                    : currentFunction.toClosure().getFunction().getChunk();
+        closure = frame.closure;
+        chunk = closure->getFunction()->getChunk();
         ip = frame.ip;
         bp = frame.bp;
+        break;
       }
       default:
         throw std::runtime_error("Unimplemented opcode");

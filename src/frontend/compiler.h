@@ -43,7 +43,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
-        function(0),
         name(name) {}
 
   FunctionObject compile() {
@@ -73,7 +72,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         throw std::runtime_error("Unknown FunctionKind");
     }
 
-    emit(Opcode::NIL);
     emit(Opcode::RETURN);
 
     disassembleChunk(function.getChunk(),
@@ -217,7 +215,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         Compiler(this, FunctionKind::Function, stringInterner, stmt, name);
     auto function = compiler.compile();
 
-    uint32_t constantIndex = addConstant(ObjectRef(std::move(function)));
+    uint32_t constantIndex =
+        addConstant(ObjectPtr<FunctionObject>(std::move(function)));
     emit(Opcode::CLOSURE, constantIndex);
   }
 

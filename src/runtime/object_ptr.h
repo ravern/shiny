@@ -1,31 +1,28 @@
 #pragma once
 
-#include <utility>
-
-#include "object.h"
+#include <cstdint>
 
 class Object;
 
 template <typename T>
 class ObjectPtr {
  public:
-  ObjectPtr(T&& object) : object(new Object(std::move(object))) {}
-
- public:
+  ObjectPtr();
+  ObjectPtr(T&& o);
+  ObjectPtr(uint64_t raw);
   ObjectPtr(const ObjectPtr& other);
   ObjectPtr(ObjectPtr&& other);
-  ~ObjectPtr();
+  ~ObjectPtr() noexcept(false);
 
- public:
   ObjectPtr& operator=(const ObjectPtr& other);
   ObjectPtr& operator=(ObjectPtr&& other);
+  T* operator->();
 
- public:
-  template <typename U>
-  bool is() const;
-  const T& get() const;
-  T& get();
+  static ObjectPtr<T> remember(uint64_t raw);
+  uint64_t forget();
 
  private:
-  Object* object;
+  Object* ptr;
 };
+
+#include "object.h"
