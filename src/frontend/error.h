@@ -1,6 +1,6 @@
 #ifndef ERROR_H
 #define ERROR_H
-#include <error.h>
+#include "../error.h"
 
 using namespace Shiny;
 
