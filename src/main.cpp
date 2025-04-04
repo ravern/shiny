@@ -1,5 +1,8 @@
+#include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
 #include "frontend/factory.h"
+#include "frontend/parser.h"
+#include "frontend/scanner.h"
 #include "frontend/string_interner.h"
 #include "frontend/type_inference.h"
 #include "frontend/var.h"
@@ -9,18 +12,26 @@
 int main() {
   StringInterner interner;
 
-  SymbolId fooId = interner.intern("foo");
-  SymbolId xId = interner.intern("x");
-  SymbolId yId = interner.intern("y");
-  SymbolId zId = interner.intern("z");
+  std::string source = R"(
+  func foo(x: Int, y: Int) -> Int {
+    var z = x + y
+    return x + y - z
+  }
+  var z = foo(3, 4)
+  )";
 
-  auto ast = S::Block(
-      {S::Function(fooId, {Var(xId, T::Int()), Var(yId, T::Int())}, T::Int(),
-                   S::Block({S::Return(E::Sub(E::Var(xId), E::Var(yId)))})),
-       S::Declare(zId, E::Apply(E::Var(fooId), {E::Int("3"), E::Int("4")}))});
+  Scanner scanner(source);
+  Parser parser(scanner, interner);
+  auto ast = parser.parse();
+  if (parser.hadError()) {
+    return 1;
+  }
 
   TypeInference inference(interner);
   inference.perform(*ast);
+
+  ASTPrettyPrinter printer(interner);
+  printer.print(*ast);
 
   Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
   auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());

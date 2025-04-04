@@ -1,5 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
+#include <utility>
+
 #include "factory.h"
 #include "scanner.h"
 #include "stmt.h"
@@ -207,7 +209,33 @@ class Parser {
       auto rhs = unary();
       return E::Unary(op, rhs);
     }
-    return primary();
+    return call();
+  }
+
+  std::shared_ptr<Expr> call() {
+    auto expr = primary();
+    while (true) {
+      if (match(TOKEN_LEFT_PAREN)) {
+        expr = finishCall(expr);
+      } else {
+        break;
+      }
+    }
+    return expr;
+  }
+
+  std::shared_ptr<Expr> finishCall(std::shared_ptr<Expr> callee) {
+    std::vector<std::shared_ptr<Expr>> args;
+    if (!check(TOKEN_RIGHT_PAREN)) {
+      do {
+        if (args.size() == 255) {
+          errorAtCurrent("Can't have more than 255 parameters.");
+        }
+        args.push_back(expression());
+      } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expected ')'");
+    return E::Apply(std::move(callee), args);
   }
 
   std::shared_ptr<Expr> primary() {

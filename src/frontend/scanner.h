@@ -1,12 +1,12 @@
 #ifndef SCANNER_H
 #define SCANNER_H
 
-#include <error.h>
-
 #include <string>
 #include <vector>
 
+#include "error.h"
 #include "token.h"
+
 
 using namespace Shiny;
 
