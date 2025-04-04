@@ -24,6 +24,9 @@ add_library(core
         runtime/object.cc
         runtime/object_ref.cc
         vm/vm.cc
+        frontend/error.h
+        frontend/parser.h
+        frontend/token.h
 )
 
 add_executable(shiny main.cpp)

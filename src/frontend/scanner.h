@@ -1,49 +1,28 @@
 #ifndef SCANNER_H
 #define SCANNER_H
+
+#include <error.h>
+
 #include <string>
+#include <vector>
 
-enum TokenType {
-  // Single-character tokens.
-  TOKEN_LEFT_PAREN, TOKEN_RIGHT_PAREN,
-  TOKEN_LEFT_BRACE, TOKEN_RIGHT_BRACE,
-  TOKEN_COMMA, TOKEN_DOT, TOKEN_MINUS, TOKEN_PLUS,
-  TOKEN_SEMICOLON, TOKEN_SLASH, TOKEN_STAR,
-  TOKEN_COLON,
+#include "token.h"
 
-  // One or two character tokens.
-  TOKEN_BANG, TOKEN_BANG_EQUAL,
-  TOKEN_EQUAL, TOKEN_EQUAL_EQUAL,
-  TOKEN_GREATER, TOKEN_GREATER_EQUAL,
-  TOKEN_LESS, TOKEN_LESS_EQUAL,
-  // Literals.
-  TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_INT, TOKEN_FLOAT,
-  // Keywords.
-  TOKEN_AND, TOKEN_CLASS, TOKEN_ELSE, TOKEN_FALSE,
-  TOKEN_FOR, TOKEN_FUN, TOKEN_IF, TOKEN_NIL, TOKEN_OR,
-  TOKEN_PRINT, TOKEN_RETURN, TOKEN_SUPER, TOKEN_SELF,
-  TOKEN_TRUE, TOKEN_VAR, TOKEN_WHILE,
+using namespace Shiny;
 
-  TOKEN_ERROR, TOKEN_EOF,
-
-  TOKEN_COUNT
-};
-
-struct Token {
-  TokenType type;
+class ScanError : public Error {
+public:
   std::string_view lexeme;
   int line;
-  bool isAtStartOfLine;
 
-  Token(TokenType type, const std::string_view lexeme, int line,
-        const bool is_at_start_of_line)
-      : type(type),
-        lexeme(lexeme),
-        line(line),
-        isAtStartOfLine(is_at_start_of_line) {}
+  ScanError(const std::string& message, std::string_view lexeme, int line)
+    : Error(message), lexeme(lexeme), line(line) {}
 };
 
 class Scanner {
+public:
   std::string_view source;
+private:
   int start;
   int current;
   int line;
@@ -56,6 +35,16 @@ public:
     current = 0;
     line = 1;
     isAtStartOfLine = false;
+  }
+
+  std::vector<Token> scanAll() {
+    std::vector<Token> tokens;
+    for (;;) {
+      Token token = scan();
+      tokens.push_back(token);
+      if (token.type == TOKEN_EOF) break;
+    }
+    return tokens;
   }
 
   Token scan() {
@@ -92,10 +81,16 @@ public:
       case '>':
         return makeToken(
             match('=') ? TOKEN_GREATER_EQUAL : TOKEN_GREATER);
+      case '&':
+        return makeToken(
+            match('&') ? TOKEN_AND : TOKEN_BITWISE_AND);
+      case '|':
+        return makeToken(
+            match('|') ? TOKEN_OR : TOKEN_BITWISE_OR);
       case '"':
         return string();
       default:
-        return errorToken("Unexpected character.");
+        throw ScanError("Unexpected character.", source.substr(current, 1), line);
     }
   }
 
@@ -106,7 +101,9 @@ private:
       advance();
     }
 
-    if (isAtEnd()) return errorToken("Unterminated string.");
+    if (isAtEnd()) {
+      throw ScanError("Unterminated string.", source.substr(current, 1), line);
+    }
 
     // The closing quote.
     advance();
@@ -136,7 +133,6 @@ private:
 
   TokenType identifierType() {
     switch (source.at(start)) {
-      case 'a': return checkKeyword(1, "nd", TOKEN_AND);
       case 'c': return checkKeyword(1, "lass", TOKEN_CLASS);
       case 'e': return checkKeyword(1, "lse", TOKEN_ELSE);
       case 'f':
@@ -149,8 +145,8 @@ private:
         }
         break;
       case 'i': return checkKeyword(1, "f", TOKEN_IF);
+      case 'l': return checkKeyword(1, "et", TOKEN_LET);
       case 'n': return checkKeyword(1, "il", TOKEN_NIL);
-      case 'o': return checkKeyword(1, "r", TOKEN_OR);
       case 'p': return checkKeyword(1, "rint", TOKEN_PRINT);
       case 'r': return checkKeyword(1, "eturn", TOKEN_RETURN);
       case 's':
@@ -161,7 +157,14 @@ private:
           }
         }
         break;
-      case 't': return checkKeyword(2, "is", TOKEN_SELF);
+      case 't':
+        if (current - start > 1) {
+          switch (source.at(start+1)) {
+            case 'r': return checkKeyword(2, "ue", TOKEN_TRUE);
+            case 'h': return checkKeyword(2, "is", TOKEN_SELF);
+          }
+        }
+        break;
       case 'v': return checkKeyword(1, "ar", TOKEN_VAR);
       case 'w': return checkKeyword(1, "hile", TOKEN_WHILE);
     }
@@ -244,12 +247,6 @@ private:
   Token makeToken(TokenType type) {
     std::string_view lexeme = source.substr(start, current - start);
     auto token = Token(type, lexeme, line, isAtStartOfLine);
-    isAtStartOfLine = false;
-    return token;
-  }
-
-  Token errorToken(std::string_view message) {
-    Token token(TOKEN_ERROR, message, line, isAtStartOfLine);
     isAtStartOfLine = false;
     return token;
   }

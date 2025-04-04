@@ -4,11 +4,13 @@
 #include <ranges>
 #include <set>
 #include <vector>
+
+#include "error.h"
 #include "expr.h"
+#include "factory.h"
 #include "stmt.h"
 #include "type_constraint.h"
 #include "union_find.h"
-#include "factory.h"
 
 using namespace Shiny;
 
@@ -23,18 +25,6 @@ class TypeNotEqualError : public Error {
 public:
   TypeNotEqualError(const Type& typeA, const Type& typeB)
     : Error("Types are not equal: " + typeA.toString() + " and " + typeB.toString()) {}
-};
-
-class ReferenceError : public Error {
-public:
-  ReferenceError(std::string message)
-    : Error(message) {}
-};
-
-class SyntaxError : public Error {
-public:
-  SyntaxError(std::string message)
-    : Error(message) {}
 };
 
 class TypeInference {
