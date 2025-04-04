@@ -50,6 +50,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       case FunctionKind::TopLevel: {
         assert(ast.kind == StmtKind::Block);
         visit(ast);
+        emit(Opcode::HALT);
         break;
       }
       case FunctionKind::Function: {
@@ -66,13 +67,13 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
           define();
         }
         visit(*functionStmt.body);
+        emit(Opcode::NIL);
+        emit(Opcode::RETURN);
         break;
       }
       default:
         throw std::runtime_error("Unknown FunctionKind");
     }
-
-    emit(Opcode::RETURN);
 
     disassembleChunk(function.getChunk(),
                      name ? stringInterner.get(name.value()) : "<function>");

@@ -16,7 +16,7 @@ class VM {
  public:
   VM();
 
-  Value evaluate(ObjectPtr<FunctionObject> function);
+  void evaluate(ObjectPtr<FunctionObject> function);
 
  private:
   ObjectPtr<ClosureObject> closure;

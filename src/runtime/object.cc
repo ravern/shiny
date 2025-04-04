@@ -1,8 +1,8 @@
 #include "object.h"
 
-#include <iostream>
+FunctionObject::FunctionObject() : name(34) {}
 
-FunctionObject::FunctionObject() : name(0) {}
+SymbolId FunctionObject::getName() const { return name; }
 
 Chunk& FunctionObject::getChunk() { return chunk; }
 

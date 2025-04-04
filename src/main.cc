@@ -1,11 +1,9 @@
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
-#include "frontend/factory.h"
 #include "frontend/parser.h"
 #include "frontend/scanner.h"
 #include "frontend/string_interner.h"
 #include "frontend/type_inference.h"
-#include "frontend/var.h"
 #include "runtime/value.h"
 #include "vm/vm.h"
 
@@ -37,8 +35,7 @@ int main() {
   auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
   VM vm;
-  auto result = vm.evaluate(rootFunction);
-  std::cout << result.asInt() << std::endl;
+  vm.evaluate(rootFunction);
 
   return 0;
 }

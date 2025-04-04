@@ -3,22 +3,23 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "../debug.h"
 #include "../runtime/object.h"
 #include "../runtime/object_ptr.h"
 #include "../runtime/value.h"
 
 VM::VM() {}
 
-Value VM::evaluate(ObjectPtr<FunctionObject> function) {
+void VM::evaluate(ObjectPtr<FunctionObject> function) {
   // Initialize the VM state for a new evaluation
   closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
   ip = 0;
   bp = 0;
-  Chunk& chunk = closure->getFunction()->getChunk();
+  Chunk* chunk = &closure->getFunction()->getChunk();
 
   while (true) {
     // Fetch and decode the current instruction
-    Instruction instruction = chunk.instructions[ip++];
+    Instruction instruction = chunk->instructions[ip++];
     Opcode opcode = static_cast<Opcode>(instruction & 0xFF);
     uint32_t operand = instruction >> 8;
 
@@ -41,12 +42,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::CONST: {
-        stack.push_back(chunk.constants[operand]);
+        stack.push_back(chunk->constants[operand]);
         break;
       }
       case Opcode::CLOSURE: {
         ObjectPtr<FunctionObject> newFunction =
-            chunk.constants[operand].asObject<FunctionObject>();
+            chunk->constants[operand].asObject<FunctionObject>();
 
         // Capture all the upvalues to create the closure
         std::vector<ObjectPtr<UpvalueObject>> upvalues;
@@ -350,22 +351,26 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         ObjectPtr<ClosureObject> newClosure =
             stack[functionStackSlot].asObject<ClosureObject>();
         closure = newClosure;
-        chunk = closure->getFunction()->getChunk();
         ip = 0;
         bp = functionStackSlot;
+        chunk = &closure->getFunction()->getChunk();
         break;
       }
       case Opcode::RETURN: {
         if (callStack.empty()) {
-          return stack.back();
+          throw std::runtime_error(
+              "Tried to return from the top-level function");
         }
         Frame frame = callStack.back();
         callStack.pop_back();
         closure = frame.closure;
-        chunk = closure->getFunction()->getChunk();
         ip = frame.ip;
         bp = frame.bp;
+        chunk = &closure->getFunction()->getChunk();
         break;
+      }
+      case Opcode::HALT: {
+        return;
       }
       default:
         throw std::runtime_error("Unimplemented opcode");

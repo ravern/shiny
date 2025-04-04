@@ -18,8 +18,10 @@ class ObjectPtr {
   ObjectPtr& operator=(ObjectPtr&& other);
   T* operator->();
 
-  static ObjectPtr<T> remember(uint64_t raw);
-  uint64_t forget();
+  static ObjectPtr<T> __remember(uint64_t raw);
+  uint64_t __forget();
+
+  Object* getPtr() const { return ptr; }
 
  private:
   Object* ptr;

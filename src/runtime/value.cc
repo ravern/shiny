@@ -10,7 +10,7 @@ const Value Value::FALSE(uint64_t(MASK_NAN | TAG_FALSE));
 
 Value::~Value() {
   if (isObject()) {
-    ObjectPtr<std::monostate>::remember((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
+    ObjectPtr<std::monostate>::__remember((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
   }
 }
 

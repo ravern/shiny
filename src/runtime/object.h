@@ -18,6 +18,7 @@ class FunctionObject {
   FunctionObject();
   ~FunctionObject() = default;
 
+  SymbolId getName() const;
   Chunk& getChunk();
   const Chunk& getChunk() const;
   std::vector<Upvalue>& getUpvalues();

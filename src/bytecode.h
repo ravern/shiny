@@ -55,6 +55,7 @@ enum class Opcode : uint8_t {
   CALL = 0x62,       // operand: number of arguments
   TAIL_CALL = 0x63,  // operand: number of arguments
   RETURN = 0x64,
+  HALT = 0x65,
 
   UPVALUE_LOAD = 0x70,   // operand: index of upvalue
   UPVALUE_STORE = 0x71,  // operand: index of upvalue

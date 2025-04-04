@@ -97,7 +97,7 @@ class Value {
 
   template <typename T>
   void initObject(ObjectPtr<T>&& o) {
-    uint64_t payload = o.forget() << NUM_TAG_BITS | TAG_OBJ;
+    uint64_t payload = o.__forget() << NUM_TAG_BITS | TAG_OBJ;
     if ((MASK_PAYLOAD & payload) != payload) {
       throw std::runtime_error(
           "Object pointer occupies more than 48-bits, this is not supported");

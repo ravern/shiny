@@ -4,7 +4,8 @@ FetchContent_Declare(argparse GIT_REPOSITORY https://github.com/p-ranav/argparse
 FetchContent_MakeAvailable(argparse)
 
 add_library(core
-        core.cpp
+        core.cc
+        debug.cc
         error.h
         bytecode.h
         frontend/scanner.h
@@ -29,5 +30,5 @@ add_library(core
         frontend/token.h
 )
 
-add_executable(shiny main.cpp)
+add_executable(shiny main.cc)
 target_link_libraries(shiny core argparse)

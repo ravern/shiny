@@ -67,14 +67,14 @@ std::monostate* ObjectPtr<std::monostate>::operator->() {
 }
 
 template <typename T>
-ObjectPtr<T> ObjectPtr<T>::remember(uint64_t raw) {
+ObjectPtr<T> ObjectPtr<T>::__remember(uint64_t raw) {
   ObjectPtr<T> ptr;
   ptr.ptr = std::bit_cast<Object*>(raw);
   return ptr;
 }
 
 template <typename T>
-uint64_t ObjectPtr<T>::forget() {
+uint64_t ObjectPtr<T>::__forget() {
   uint64_t raw = std::bit_cast<uint64_t>(ptr);
   ptr = nullptr;
   return raw;
