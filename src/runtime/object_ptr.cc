@@ -1,6 +1,5 @@
 #include "object_ptr.h"
 
-#include <iostream>
 #include <variant>
 
 template <typename T>

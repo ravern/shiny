@@ -1,5 +1,3 @@
-#include <cstdint>
-
 #include "frontend/compiler.h"
 #include "frontend/factory.h"
 #include "frontend/string_interner.h"
