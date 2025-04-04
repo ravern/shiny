@@ -19,7 +19,13 @@ cmake --build build
 Run the executable:
 
 ```bash
-build/shiny
+build/src/shiny
+```
+
+Run the tests:
+
+```bash
+build/tests/tests
 ```
 
 ## Specification
