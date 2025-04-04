@@ -4,14 +4,56 @@
 #include "scanner.h"
 #include "stmt.h"
 
+class ParseError : public Error {
+public:
+  std::string_view lexeme;
+  int line;
+
+  explicit ParseError(std::string_view lexeme, int line, const std::string& message)
+    : Error(message), lexeme(lexeme), line(line) {}
+
+  void print(std::string_view source) {
+    // Extract the full line of source where the error occurred.
+    // First, find the beginning of the line.
+    size_t lineStart = lexeme.data() - source.data();
+    while (lineStart > 0 && source[lineStart - 1] != '\n') {
+      --lineStart;
+    }
+
+    // Then, find the end of the line.
+    size_t lineEnd = lexeme.data() - source.data() + lexeme.size();
+    while (lineEnd < source.size() && source[lineEnd] != '\n') {
+      ++lineEnd;
+    }
+
+    std::string_view lineText = source.substr(lineStart, lineEnd - lineStart);
+
+    // Compute the column (character offset from lineStart to token start)
+    size_t tokenStartColumn = lexeme.data() - (source.data() + lineStart);
+
+    // Print the error
+    std::cerr << "[line " << line << "] Error";
+    if (line == -1) {
+      std::cerr << " at end";
+    } else {
+      std::cerr << " at '" << lexeme << "'";
+    }
+    std::cerr << ": " << what() << "\n";
+
+    std::cerr << "    " << lineText << "\n";
+    std::cerr << "    " << std::string(tokenStartColumn, ' ') << "^\n";
+  }
+};
+
 class Parser {
   Scanner& scanner;
   StringInterner& strings;
   Token current;
   Token previous;
-  bool hadError = false;
 
  public:
+  std::vector<ParseError> errors;
+
   explicit Parser(Scanner& scanner, StringInterner& strings)
       : scanner(scanner), strings(strings) {}
 
@@ -20,12 +62,11 @@ class Parser {
     return program();
   }
 
- private:
-  class ParseError : public Error {
-   public:
-    explicit ParseError() : Error("") {}
-  };
+  bool hadError() {
+    return !errors.empty();
+  }
 
+ private:
   std::shared_ptr<BlockStmt> program() {
     auto stmts = statements();
     return S::Block(stmts);
@@ -188,39 +229,10 @@ class Parser {
   }
 
   ParseError errorAt(std::string_view lexeme, int line, std::string message) {
-    hadError = true;
-
-    // Extract the full line of source where the error occurred.
-    // First, find the beginning of the line.
-    size_t lineStart = lexeme.data() - scanner.source.data();
-    while (lineStart > 0 && scanner.source[lineStart - 1] != '\n') {
-      --lineStart;
-    }
-
-    // Then, find the end of the line.
-    size_t lineEnd = lexeme.data() - scanner.source.data() + lexeme.size();
-    while (lineEnd < scanner.source.size() && scanner.source[lineEnd] != '\n') {
-      ++lineEnd;
-    }
-
-    std::string_view lineText = scanner.source.substr(lineStart, lineEnd - lineStart);
-
-    // Compute the column (character offset from lineStart to token start)
-    size_t tokenStartColumn = lexeme.data() - (scanner.source.data() + lineStart);
-
-    // Print the error
-    std::cerr << "[line " << line << "] Error";
-    if (line == -1) {
-      std::cerr << " at end";
-    } else {
-      std::cerr << " at '" << lexeme << "'";
-    }
-    std::cerr << ": " << message << "\n";
-
-    std::cerr << "    " << lineText << "\n";
-    std::cerr << "    " << std::string(tokenStartColumn, ' ') << "^\n";
-
-    return ParseError();
+    ParseError error(lexeme, line, message);
+    error.print(scanner.source);
+    errors.emplace_back(error);
+    throw error;
   }
 
   void synchronize() {

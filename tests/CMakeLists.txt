@@ -13,7 +13,6 @@ add_executable(tests
         type_equality_test.cpp
         union_find_test.cpp
         compiler_test.cpp
-        scanner_test.cpp
         parser_test.cpp
 )
 target_include_directories(

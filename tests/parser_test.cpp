@@ -27,16 +27,55 @@ TEST(ParserTest, Test) {
         S::Declare(z, E::Bool(false)),
         S::Declare(a, E::And(E::Var(y), E::Var(z))),
       });
+  ASSERT_FALSE(parser.hadError());
   ASSERT_EQ(*expectedAst, *ast);
 }
 
-TEST(ParserTest, Invalid) {
+TEST(ParserTest, OneLineTwoStatements) {
   std::string source = R"(
-  |||||var x = 1 var y = true
+  var x = 1 var y = true
   )";
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
   parser.parse();
+  ASSERT_EQ(parser.errors.size(), 1);
+  ASSERT_NE(std::string(parser.errors[0].what()).find("Statement must begin on a new line"), std::string::npos);
+}
+
+TEST(ParserTest, VarWithoutIdentifier) {
+  std::string source = R"(
+  var = 1
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+  parser.parse();
+  ASSERT_EQ(parser.errors.size(), 1);
+  ASSERT_NE(std::string(parser.errors[0].what()).find("Expected identifier"), std::string::npos);
+}
+
+TEST(ParserTest, VarWithoutInitializer) {
+  std::string source = R"(
+  var x =
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+  parser.parse();
+  ASSERT_EQ(parser.errors.size(), 1);
+  ASSERT_NE(std::string(parser.errors[0].what()).find("Expected expression"), std::string::npos);
+}
+
+TEST(ParserTest, UnclosedParen) {
+  std::string source = R"(
+  var x = (1 + 2
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+  parser.parse();
+  ASSERT_EQ(parser.errors.size(), 1);
+  ASSERT_NE(std::string(parser.errors[0].what()).find("Expected ')'"), std::string::npos);
 }
 
