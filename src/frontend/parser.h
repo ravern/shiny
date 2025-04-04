@@ -68,24 +68,22 @@ class Parser {
 
  private:
   std::shared_ptr<BlockStmt> program() {
-    auto stmts = statements();
-    return S::Block(stmts);
-  }
-
-  std::shared_ptr<BlockStmt> block() {
-    consume(TOKEN_LEFT_BRACE, "Expected '{'");
-    auto stmts = statements();
-    consume(TOKEN_RIGHT_BRACE, "Expected '}'");
-    return S::Block(stmts);
-  }
-
-  std::vector<std::shared_ptr<Stmt>> statements() {
     std::vector<std::shared_ptr<Stmt>> statements;
     while (current.type != TOKEN_EOF) {
       statements.push_back(statement());
     }
-    return statements;
-  };
+    return S::Block(statements);
+  }
+
+  std::shared_ptr<BlockStmt> block() {
+    consume(TOKEN_LEFT_BRACE, "Expected '{'");
+    std::vector<std::shared_ptr<Stmt>> statements;
+    while (current.type != TOKEN_RIGHT_BRACE && current.type != TOKEN_EOF) {
+      statements.push_back(statement());
+    }
+    consume(TOKEN_RIGHT_BRACE, "Expected '}'");
+    return S::Block(statements);
+  }
 
   std::shared_ptr<Stmt> statement() {
     try {
@@ -95,6 +93,9 @@ class Parser {
       if (match(TOKEN_VAR)) {
         return declareStatement();
       }
+      if (match(TOKEN_FUNC)) {
+        return functionStatement();
+      }
       throw errorAtCurrent("Expected statement");
     } catch (const ParseError& e) {
       synchronize();
@@ -103,13 +104,51 @@ class Parser {
   }
 
   std::shared_ptr<Stmt> declareStatement() {
-    consume(TOKEN_IDENTIFIER, "Expected identifier");
-    auto identifier = previous;
+    auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
     consume(TOKEN_EQUAL, "Expected '='");
     auto expr = expression();
 
     auto symbol = strings.intern(std::string(identifier.lexeme));
     return S::Declare(symbol, expr);
+  }
+
+  std::shared_ptr<Stmt> functionStatement() {
+    auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
+    auto symbol = strings.intern(std::string(identifier.lexeme));
+    consume(TOKEN_LEFT_PAREN, "Expected '('");
+
+    std::vector<Var> params;
+    if (!check(TOKEN_RIGHT_PAREN)) {
+      do {
+        auto paramName = consume(TOKEN_IDENTIFIER, "Expected identifier");
+        consume(TOKEN_COLON, "Expected ':'");
+        auto paramType = consume(TOKEN_IDENTIFIER, "Expected type for function parameter");
+        auto paramSymbol = strings.intern(std::string(paramName.lexeme));
+        auto type = parseType(paramType.lexeme);
+        Var param(paramSymbol, type);
+        params.push_back(param);
+      } while (match(TOKEN_COMMA));
+    }
+    consume(TOKEN_RIGHT_PAREN, "Expected ')'");
+
+    std::shared_ptr<Type> returnType = T::Void();
+    if (match(TOKEN_ARROW)) {
+      auto argType = consume(TOKEN_IDENTIFIER, "Expected type for function result");
+      returnType = parseType(argType.lexeme);
+    }
+
+    auto body = block();
+
+    return S::Function(symbol, params, returnType, body);
+  }
+
+  std::shared_ptr<Type> parseType(std::string_view str) {
+    std::shared_ptr<Type> type =
+       str == "Int" ? std::static_pointer_cast<Type>(T::Int())
+     : str == "Double" ? std::static_pointer_cast<Type>(T::Double())
+     : str == "Bool" ? std::static_pointer_cast<Type>(T::Bool())
+     : throw std::runtime_error("Unexpected type");
+    return type;
   }
 
   std::shared_ptr<Expr> expression() { return logicalOr(); }
@@ -141,9 +180,8 @@ class Parser {
     while (match(TOKEN_PLUS) || match(TOKEN_MINUS)) {
       BinaryOperator op =
           previous.type == TOKEN_PLUS ? BinaryOperator::Add
-          : previous.type == TOKEN_MINUS
-              ? BinaryOperator::Minus
-              : throw std::runtime_error("Unexpected token type");
+        : previous.type == TOKEN_MINUS ? BinaryOperator::Minus
+        : throw std::runtime_error("Unexpected token type");
       auto rhs = factor();
       expr = E::Binary(expr, op, rhs);
     }
@@ -156,9 +194,8 @@ class Parser {
     if (match(TOKEN_BANG) || match(TOKEN_MINUS)) {
       UnaryOperator op =
           previous.type == TOKEN_BANG ? UnaryOperator::Not
-          : previous.type == TOKEN_MINUS
-              ? UnaryOperator::Negate
-              : throw std::runtime_error("Unexpected token type");
+        : previous.type == TOKEN_MINUS ? UnaryOperator::Negate
+        : throw std::runtime_error("Unexpected token type");
       auto rhs = unary();
       return E::Unary(op, rhs);
     }
@@ -199,11 +236,12 @@ class Parser {
     }
   }
 
-  void consume(TokenType type, std::string message) {
+  Token& consume(TokenType type, std::string message) {
     if (current.type != type) {
       throw errorAtCurrent(message);
     }
     advance();
+    return previous;
   }
 
   bool check(TokenType type) { return current.type == type; }

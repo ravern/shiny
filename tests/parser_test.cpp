@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "frontend/ast_pretty_printer.h"
 #include "frontend/scanner.h"
 
 TEST(ParserTest, Test) {
@@ -77,5 +78,36 @@ TEST(ParserTest, UnclosedParen) {
   parser.parse();
   ASSERT_EQ(parser.errors.size(), 1);
   ASSERT_NE(std::string(parser.errors[0].what()).find("Expected ')'"), std::string::npos);
+}
+
+TEST(ParserTest, FunctionWithReturnType) {
+  std::string source = R"(
+  func add(x: Int, y: Int) -> Int {
+
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto add = strings.intern("add");
+  auto x = strings.intern("x");
+  auto y = strings.intern("y");
+  auto ast = parser.parse();
+  auto expectedAst = S::Block({
+    S::Function(
+      add,
+      {Var(x, T::Int()), Var(y, T::Int())},
+      T::Int(),
+      S::Block({})
+    )
+  });
+  ASTPrettyPrinter printer(strings);
+
+  printer.print(*ast);
+  printer.print(*expectedAst);
+
+  ASSERT_FALSE(parser.hadError());
+  ASSERT_EQ(*expectedAst, *ast);
 }
 

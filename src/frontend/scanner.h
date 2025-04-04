@@ -65,7 +65,9 @@ public:
       case ':': return makeToken(TOKEN_COLON);
       case ',': return makeToken(TOKEN_COMMA);
       case '.': return makeToken(TOKEN_DOT);
-      case '-': return makeToken(TOKEN_MINUS);
+      case '-':
+        return makeToken(
+          match('>') ? TOKEN_ARROW : TOKEN_MINUS);
       case '+': return makeToken(TOKEN_PLUS);
       case '/': return makeToken(TOKEN_SLASH);
       case '*': return makeToken(TOKEN_STAR);
@@ -140,7 +142,7 @@ private:
           switch (source.at(start+1)) {
             case 'a': return checkKeyword(2, "lse", TOKEN_FALSE);
             case 'o': return checkKeyword(2, "r", TOKEN_FOR);
-            case 'u': return checkKeyword(2, "n", TOKEN_FUN);
+            case 'u': return checkKeyword(2, "nc", TOKEN_FUNC);
           }
         }
         break;
