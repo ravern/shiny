@@ -1,14 +1,28 @@
 #pragma once
 
+#include <vector>
+
+#include "../runtime/object.h"
+#include "../runtime/object_ptr.h"
 #include "../runtime/value.h"
 
 struct Frame {
-  ObjectRef function;
+  ObjectPtr<ClosureObject> closure;
   int ip;
   int bp;
 };
 
 class VM {
  public:
-  Value evaluate(ObjectRef function);
+  VM();
+
+  Value evaluate(ObjectPtr<FunctionObject> function);
+
+ private:
+  ObjectPtr<ClosureObject> closure;
+  int ip;
+  int bp;
+  std::vector<Value> stack;
+  std::vector<Frame> callStack;
+  std::vector<ObjectPtr<UpvalueObject>> upvalueStack;
 };

@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cstdint>
 #include <variant>
-#include <vector>
 
 #include "../bytecode.h"
 #include "../frontend/string_interner.h"
+#include "object_ptr.h"
 
-// FUNCTIONS
+class Value;
 
 struct Upvalue {
   int index;
@@ -16,29 +15,62 @@ struct Upvalue {
 
 class FunctionObject {
  public:
-  FunctionObject(uint8_t arity);
-  FunctionObject(const FunctionObject& other);
-  FunctionObject(FunctionObject&& other);
+  FunctionObject();
   ~FunctionObject() = default;
 
- public:
-  uint8_t getArity() const;
-  const std::vector<Upvalue>& getUpvalues() const;
-  const Chunk& getChunk() const;
   Chunk& getChunk();
+  const Chunk& getChunk() const;
+  std::vector<Upvalue>& getUpvalues();
+  const std::vector<Upvalue>& getUpvalues() const;
 
- public:
   int addUpvalue(Upvalue upvalue);
 
  private:
-  uint8_t arity;
-  std::vector<Upvalue> upvalues;
   Chunk chunk;
-
-  // for error reporting and debugging
+  std::vector<Upvalue> upvalues;
   SymbolId name;
 };
 
-// OBJECTS
+class UpvalueObject {
+ public:
+  UpvalueObject(Value* value);
+  ~UpvalueObject() = default;
 
-using Object = std::variant<FunctionObject>;
+ private:
+  Value closedValue;
+  Value* value;
+};
+
+class ClosureObject {
+ public:
+  ClosureObject(ObjectPtr<FunctionObject> function);
+  ClosureObject(ObjectPtr<FunctionObject> function,
+                std::vector<ObjectPtr<UpvalueObject>>&& upvalues);
+  ~ClosureObject() = default;
+
+  ObjectPtr<FunctionObject>& getFunction();
+  const ObjectPtr<FunctionObject>& getFunction() const;
+  std::vector<ObjectPtr<UpvalueObject>>& getUpvalues();
+  const std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() const;
+
+ private:
+  ObjectPtr<FunctionObject> function;
+  std::vector<ObjectPtr<UpvalueObject>> upvalues;
+};
+
+class Object {
+ public:
+  template <typename T>
+  Object(T&& o) : data(std::move(o)), strongCount(1), weakCount(0) {}
+
+  ~Object() = default;
+
+  template <typename T>
+  T* get() {
+    return &std::get<T>(data);
+  }
+
+  std::variant<FunctionObject, UpvalueObject, ClosureObject> data;
+  int strongCount;
+  int weakCount;
+};

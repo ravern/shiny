@@ -1,9 +1,45 @@
 #include "value.h"
 
-Value::Value(int64_t i) : raw(reinterpret_cast<uint64_t&>(i)) {}
-Value::Value(double d) : raw(reinterpret_cast<uint64_t&>(d)) {}
-Value::Value(ObjectRef o) : raw(reinterpret_cast<uint64_t&>(o)) {}
+#include <variant>
 
-int64_t Value::toInt() const { return reinterpret_cast<const int64_t&>(raw); }
-double Value::toDouble() const { return reinterpret_cast<const double&>(raw); }
-ObjectRef Value::toObject() { return reinterpret_cast<ObjectRef&>(raw); }
+#include "object_ptr.h"
+
+const Value Value::NIL(uint64_t(MASK_NAN | TAG_NIL));
+const Value Value::TRUE(uint64_t(MASK_NAN | TAG_TRUE));
+const Value Value::FALSE(uint64_t(MASK_NAN | TAG_FALSE));
+
+Value::~Value() {
+  if (isObject()) {
+    ObjectPtr<std::monostate>::remember((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
+  }
+}
+
+Value::Value(const Value& other) {
+  if (other.isObject()) {
+    ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
+    initObject<std::monostate>(std::move(ptr));
+  } else {
+    raw = other.raw;
+  }
+}
+
+Value::Value(Value&& other) {
+  raw = other.raw;
+  other = Value::NIL;
+}
+
+Value& Value::operator=(const Value& other) {
+  if (other.isObject()) {
+    ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
+    initObject<std::monostate>(std::move(ptr));
+  } else {
+    raw = other.raw;
+  }
+  return *this;
+}
+
+Value& Value::operator=(Value&& other) {
+  raw = other.raw;
+  other.raw = 0;
+  return *this;
+}

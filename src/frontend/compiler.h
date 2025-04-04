@@ -5,9 +5,10 @@
 #include "../bytecode.h"
 #include "../debug.h"
 #include "../frontend/ast_visitor.h"
-#include "../frontend/stmt.h"
 #include "../frontend/factory.h"
+#include "../frontend/stmt.h"
 #include "../runtime/object.h"
+#include "string_interner.h"
 
 struct Local {
   VariableName name;
@@ -32,15 +33,17 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   Stmt& ast;
 
   FunctionObject function;
+  std::optional<SymbolId> name;
 
  public:
   Compiler(Compiler* enclosing_compiler, FunctionKind kind,
-           StringInterner& stringInterner, Stmt& ast)
+           StringInterner& stringInterner, Stmt& ast,
+           std::optional<SymbolId> name = std::nullopt)
       : enclosingCompiler(enclosing_compiler),
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
-        function(0) {}
+        name(name) {}
 
   FunctionObject compile() {
     switch (kind) {
@@ -55,6 +58,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
         }
+        declare(stringInterner.intern("__function__"));
+        define();
         for (int i = 0; i < functionStmt.params.size(); ++i) {
           auto& param = functionStmt.params.at(i);
           declare(param.name);
@@ -69,7 +74,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     emit(Opcode::RETURN);
 
-    disassembleChunk(function.getChunk(), "<function>");
+    disassembleChunk(function.getChunk(),
+                     name ? stringInterner.get(name.value()) : "<function>");
 
     return function;
   }
@@ -114,10 +120,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
+    visit(*expr.function);
     for (auto& arg : expr.arguments) {
       visit(*arg);
     }
-    visit(*expr.function);
     emit(Opcode::CALL, static_cast<uint32_t>(expr.arguments.size()));
 
     auto var = static_cast<VariableExpr*>(expr.function.get());
@@ -130,18 +136,18 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     switch (expr.op) {
       case BinaryOperator::Add: {
-        uint32_t opType =
-          lhsType->kind == TypeKind::Integer ? 1 :
-          lhsType->kind == TypeKind::Double  ? 2 :
-          throw std::runtime_error("Unexpected TypeKind");
+        uint32_t opType = lhsType->kind == TypeKind::Integer ? 1
+                          : lhsType->kind == TypeKind::Double
+                              ? 2
+                              : throw std::runtime_error("Unexpected TypeKind");
         emit(Opcode::ADD, opType);
         return lhsType;
       }
       case BinaryOperator::Minus: {
-        uint32_t opType =
-          lhsType->kind == TypeKind::Integer ? 1 :
-          lhsType->kind == TypeKind::Double  ? 2 :
-          throw std::runtime_error("Unexpected TypeKind");
+        uint32_t opType = lhsType->kind == TypeKind::Integer ? 1
+                          : lhsType->kind == TypeKind::Double
+                              ? 2
+                              : throw std::runtime_error("Unexpected TypeKind");
         emit(Opcode::SUB, opType);
         return lhsType;
       }
@@ -157,15 +163,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitUnaryExpr(UnaryExpr& expr) {
-    visit(*expr.operand);
+    auto type = visit(*expr.operand);
 
     switch (expr.op) {
       case UnaryOperator::Negate:
         emit(Opcode::NEG);
-        break;
+        return type;
       case UnaryOperator::Not:
         emit(Opcode::NOT);
-        break;
+        return type;
       default:
         throw std::runtime_error("Unknown UnaryOperator");
     }
@@ -206,10 +212,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     define();  // function body can reference itself
 
     auto compiler =
-        Compiler(this, FunctionKind::Function, stringInterner, stmt);
+        Compiler(this, FunctionKind::Function, stringInterner, stmt, name);
     auto function = compiler.compile();
 
-    uint32_t constantIndex = addConstant(ObjectRef(std::move(function)));
+    uint32_t constantIndex =
+        addConstant(ObjectPtr<FunctionObject>(std::move(function)));
     emit(Opcode::CLOSURE, constantIndex);
   }
 
