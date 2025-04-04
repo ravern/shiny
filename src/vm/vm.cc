@@ -1,15 +1,19 @@
 #include "vm.h"
 
+#include <iostream>
+#include <memory>
 #include <stdexcept>
 
 #include "../runtime/object.h"
 
 Value VM::evaluate(ObjectRef function) {
-  Chunk& chunk = function.toFunction().getChunk();
+  ObjectRef currentFunction = function;
+  Chunk& chunk = currentFunction.toFunction().getChunk();
   int ip = 0;
   int bp = 0;
   std::vector<Value> stack;
   std::vector<Frame> callStack;
+  std::vector<std::shared_ptr<LiveUpvalue>> upvalueStack;
 
   while (true) {
     Instruction instruction = chunk.instructions[ip++];
@@ -31,7 +35,42 @@ Value VM::evaluate(ObjectRef function) {
         break;
       }
       case Opcode::CONST: {
+        std::cout << "pushing constant " << chunk.constants[operand].toRaw()
+                  << " to stack slot " << stack.size() << std::endl;
         stack.push_back(chunk.constants[operand]);
+        break;
+      }
+      case Opcode::CLOSURE: {
+        ObjectRef functionObject = chunk.constants[operand].toObject();
+        FunctionObject& function = functionObject.toFunction();
+
+        std::vector<std::shared_ptr<LiveUpvalue>> upvalues;
+        for (auto& upvalue : function.getUpvalues()) {
+          if (upvalue.isLocal) {
+            int stackSlot = bp + upvalue.index;
+            std::shared_ptr<LiveUpvalue> liveUpvalue =
+                std::make_shared<LiveUpvalue>((uint64_t)0, &stack[stackSlot]);
+            upvalueStack.push_back(liveUpvalue);
+            upvalues.push_back(liveUpvalue);
+          } else {
+            ClosureObject& parentClosure =
+                callStack.back().function.toClosure();
+            std::shared_ptr<LiveUpvalue> parentUpvalue =
+                parentClosure.getUpvalues()[upvalue.index];
+            upvalues.push_back(parentUpvalue);
+          }
+        }
+
+        std::cout << "pushing closure to stack slot " << stack.size()
+                  << std::endl;
+        stack.push_back(Value(
+            ObjectRef(ClosureObject(functionObject, std::move(upvalues)))));
+        std::cout << "stack size: " << stack.size() << std::endl;
+        Value back = stack.back();
+        std::cout << "is closure: " << back.toObject().isClosure()
+                  << ", is function: " << back.toObject().isFunction()
+                  << std::endl;
+
         break;
       }
       case Opcode::ADD: {
@@ -276,6 +315,9 @@ Value VM::evaluate(ObjectRef function) {
       }
       case Opcode::LOAD: {
         int stackSlot = bp + operand;
+        std::cout << "loading value " << stack[stackSlot].toRaw()
+                  << " from stack slot " << stackSlot << " to stack slot "
+                  << stack.size() << std::endl;
         stack.push_back(stack[stackSlot]);
         break;
       }
@@ -305,8 +347,39 @@ Value VM::evaluate(ObjectRef function) {
         ip = operand;
         break;
       }
+      case Opcode::CALL: {
+        callStack.push_back({currentFunction, ip, bp});
+        std::cout << "operand: " << operand << std::endl;
+        int functionStackSlot = stack.size() - operand - 1;
+        std::cout << "stack size: " << stack.size() << std::endl;
+        std::cout << "function stack slot: " << functionStackSlot << std::endl;
+        std::cout << "top of stack: " << stack.back().toRaw() << std::endl;
+        std::cout << "second top of stack: " << stack[stack.size() - 2].toRaw()
+                  << std::endl;
+        ObjectRef newFunction = stack[functionStackSlot].toObject();
+        std::cout << "is closure: " << newFunction.isClosure()
+                  << ", is function: " << newFunction.isFunction() << std::endl;
+        currentFunction = newFunction;
+        chunk = currentFunction.isFunction()
+                    ? currentFunction.toFunction().getChunk()
+                    : currentFunction.toClosure().getFunction().getChunk();
+        bp = functionStackSlot;
+        ip = 0;
+        std::cout << "--------------------------------" << std::endl;
+        break;
+      }
       case Opcode::RETURN: {
-        return stack.back();
+        if (callStack.empty()) {
+          return stack.back();
+        }
+        Frame frame = callStack.back();
+        callStack.pop_back();
+        currentFunction = frame.function;
+        chunk = currentFunction.isFunction()
+                    ? currentFunction.toFunction().getChunk()
+                    : currentFunction.toClosure().getFunction().getChunk();
+        ip = frame.ip;
+        bp = frame.bp;
       }
       default:
         throw std::runtime_error("Unimplemented opcode");

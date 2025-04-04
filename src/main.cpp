@@ -2,20 +2,20 @@
 #include "frontend/factory.h"
 #include "frontend/string_interner.h"
 #include "frontend/type_inference.h"
+#include "frontend/var.h"
 #include "vm/vm.h"
 
 int main() {
   StringInterner interner;
 
+  SymbolId fooId = interner.intern("foo");
   SymbolId xId = interner.intern("x");
   SymbolId yId = interner.intern("y");
-  SymbolId zId = interner.intern("z");
-  SymbolId wId = interner.intern("w");
 
-  auto ast = S::Block(
-      {S::Declare(xId, E::Double("3")), S::Declare(yId, E::Double("4.5")),
-       S::Declare(zId, E::Double("32.5")),
-       S::Declare(wId, E::Sub(E::Add(E::Var(xId), E::Var(yId)), E::Var(zId)))});
+  auto ast =
+      S::Block({S::Function(fooId, {Var(xId, T::Int())}, T::Int(),
+                            S::Block({S::Return(E::Var(xId))})),
+                S::Declare(yId, E::Apply(E::Var(fooId), {E::Int("3")}))});
 
   TypeInference inference(interner);
   inference.perform(*ast);

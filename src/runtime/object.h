@@ -6,8 +6,9 @@
 
 #include "../bytecode.h"
 #include "../frontend/string_interner.h"
+#include "object_ptr.h"
 
-// FUNCTIONS
+// FUNCTION
 
 struct Upvalue {
   int index;
@@ -17,6 +18,7 @@ struct Upvalue {
 class FunctionObject {
  public:
   FunctionObject(uint8_t arity);
+  FunctionObject(SymbolId name, uint8_t arity);
   FunctionObject(const FunctionObject& other);
   FunctionObject(FunctionObject&& other);
   ~FunctionObject() = default;
@@ -26,6 +28,7 @@ class FunctionObject {
   const std::vector<Upvalue>& getUpvalues() const;
   const Chunk& getChunk() const;
   Chunk& getChunk();
+  SymbolId getName() const;
 
  public:
   int addUpvalue(Upvalue upvalue);
@@ -39,6 +42,41 @@ class FunctionObject {
   SymbolId name;
 };
 
-// OBJECTS
+// UPVALUE
 
-using Object = std::variant<FunctionObject>;
+class UpvalueObject {
+ public:
+  UpvalueObject(Value closedValue, Value* value);
+  ~UpvalueObject() = default;
+
+ private:
+  Value closedValue;
+  Value* value;
+};
+
+// CLOSURE
+
+class ClosureObject {
+ public:
+  ClosureObject(ObjectPtr<FunctionObject>&& function,
+                std::vector<ObjectPtr<UpvalueObject>>&& upvalues);
+  ~ClosureObject() = default;
+
+ public:
+  const std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() const;
+  std::vector<ObjectPtr<UpvalueObject>>& getUpvalues();
+  const FunctionObject& getFunction() const;
+  FunctionObject& getFunction();
+
+ private:
+  ObjectPtr<FunctionObject> function;
+  std::vector<ObjectPtr<UpvalueObject>> upvalues;
+};
+
+// OBJECT
+
+struct Object {
+  std::variant<FunctionObject, ClosureObject, UpvalueObject> data;
+  int strongCount;
+  int weakCount;
+};

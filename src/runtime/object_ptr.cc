@@ -1,8 +1,8 @@
 #include "object_ref.h"
 
-#include "object_ref_inner.h"
-
 ObjectRef::ObjectRef(FunctionObject&& object)
+    : inner(new ObjectRefInner{std::move(object), 1}) {}
+ObjectRef::ObjectRef(ClosureObject&& object)
     : inner(new ObjectRefInner{std::move(object), 1}) {}
 
 ObjectRef::ObjectRef(const ObjectRef& other) : inner(other.inner) {
@@ -40,10 +40,26 @@ ObjectRef& ObjectRef::operator=(ObjectRef&& other) {
   return *this;
 }
 
+bool ObjectRef::isFunction() const {
+  return std::holds_alternative<FunctionObject>(inner->object);
+}
+
+bool ObjectRef::isClosure() const {
+  return std::holds_alternative<ClosureObject>(inner->object);
+}
+
 const FunctionObject& ObjectRef::toFunction() const {
   return std::get<FunctionObject>(inner->object);
 }
 
+const ClosureObject& ObjectRef::toClosure() const {
+  return std::get<ClosureObject>(inner->object);
+}
+
 FunctionObject& ObjectRef::toFunction() {
   return std::get<FunctionObject>(inner->object);
+}
+
+ClosureObject& ObjectRef::toClosure() {
+  return std::get<ClosureObject>(inner->object);
 }
