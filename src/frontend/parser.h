@@ -93,6 +93,9 @@ class Parser {
       if (match(TOKEN_VAR)) {
         return declareStatement();
       }
+      if (match(TOKEN_RETURN)) {
+        return returnStatement();
+      }
       if (match(TOKEN_FUNC)) {
         return functionStatement();
       }
@@ -110,6 +113,11 @@ class Parser {
 
     auto symbol = strings.intern(std::string(identifier.lexeme));
     return S::Declare(symbol, expr);
+  }
+
+  std::shared_ptr<Stmt> returnStatement() {
+    auto expr = expression();
+    return S::Return(expr);
   }
 
   std::shared_ptr<Stmt> functionStatement() {
@@ -276,6 +284,9 @@ class Parser {
   void synchronize() {
     advance();
     while (current.type != TOKEN_EOF) {
+      if (current.isAtStartOfLine) {
+        return;
+      }
       switch (current.type) {
         case TOKEN_VAR:
           return;

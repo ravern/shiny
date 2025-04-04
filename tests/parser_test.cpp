@@ -83,7 +83,8 @@ TEST(ParserTest, UnclosedParen) {
 TEST(ParserTest, FunctionWithReturnType) {
   std::string source = R"(
   func add(x: Int, y: Int) -> Int {
-
+    var z = x + y
+    return z
   }
   )";
   Scanner scanner(source);
@@ -93,13 +94,19 @@ TEST(ParserTest, FunctionWithReturnType) {
   auto add = strings.intern("add");
   auto x = strings.intern("x");
   auto y = strings.intern("y");
+  auto z = strings.intern("z");
   auto ast = parser.parse();
+  ASSERT_FALSE(parser.hadError());
+
   auto expectedAst = S::Block({
     S::Function(
       add,
       {Var(x, T::Int()), Var(y, T::Int())},
       T::Int(),
-      S::Block({})
+      S::Block({
+        S::Declare(z, E::Add(E::Var(x), E::Var(y))),
+        S::Return(E::Var(z))
+      })
     )
   });
   ASTPrettyPrinter printer(strings);
@@ -107,7 +114,6 @@ TEST(ParserTest, FunctionWithReturnType) {
   printer.print(*ast);
   printer.print(*expectedAst);
 
-  ASSERT_FALSE(parser.hadError());
   ASSERT_EQ(*expectedAst, *ast);
 }
 
