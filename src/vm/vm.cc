@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #include "../debug.h"
 #include "../runtime/object.h"
@@ -22,6 +23,9 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
     Instruction instruction = chunk->instructions[ip++];
     Opcode opcode = static_cast<Opcode>(instruction & 0xFF);
     uint32_t operand = instruction >> 8;
+
+    std::cout << "ip: " << ip << " opcode: " << opcodeToString(opcode)
+              << " operand: " << operand << std::endl;
 
     // Execute the instruction
     switch (opcode) {
@@ -314,6 +318,8 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.push_back(a.asInt() >> b.asInt());
         break;
       }
+
+      // Opcodes for stack manipulation
       case Opcode::LOAD: {
         int stackSlot = bp + operand;
         stack.push_back(stack[stackSlot]);
@@ -333,6 +339,8 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         break;
       }
+
+      // Opcodes for control flow
       case Opcode::TEST: {
         Value condition = stack.back();
         stack.pop_back();
@@ -361,6 +369,15 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
           throw std::runtime_error(
               "Tried to return from the top-level function");
         }
+
+        // Pop everything up to the base pointer
+        Value returnValue = stack.back();
+        while (stack.size() > bp) {
+          stack.pop_back();
+        }
+        stack.push_back(returnValue);
+
+        // Restore the frame
         Frame frame = callStack.back();
         callStack.pop_back();
         closure = frame.closure;
@@ -370,6 +387,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::HALT: {
+        std::cout << stack.back().asInt() << std::endl;
         return;
       }
       default:

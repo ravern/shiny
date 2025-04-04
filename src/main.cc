@@ -13,9 +13,14 @@ int main() {
   std::string source = R"(
   func foo(x: Int, y: Int) -> Int {
     var z = x + y
-    return x + y - z
+    return z + x
   }
-  var z = foo(3, 4)
+
+  func bar(x: Int, y: Int) -> Int {
+    return x + y
+  }
+
+  var z = foo(3, bar(4, 5))
   )";
 
   Scanner scanner(source);
