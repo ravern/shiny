@@ -120,3 +120,265 @@ TEST(ParserTest, FunctionWithReturnType) {
   ASSERT_EQ(*expectedAst, *ast);
 }
 
+TEST(ParserTest, ComplexReturnType) {
+  std::string source = R"(
+  func one() -> (Int) -> (Int) -> Int {
+    func two(a: Int) -> ((Int) -> Int) {
+      func three(b: Int) -> Int {
+        return b
+      }
+      return three
+    }
+    return two
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto one = strings.intern("one");
+  auto two = strings.intern("two");
+  auto three = strings.intern("three");
+  auto a = strings.intern("a");
+  auto b = strings.intern("b");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      one,
+      {},
+      T::Function(
+        {T::Int()},
+        T::Function({T::Int()}, T::Int())
+      ),
+      S::Block({
+        S::Function(
+          two,
+          {Var(a, T::Int())},
+          T::Function({T::Int()}, T::Int()),
+          S::Block({
+            S::Function(
+              three,
+              {Var(b, T::Int())},
+              T::Int(),
+              S::Block({
+                S::Return(E::Var(b))
+              })
+            ),
+            S::Return(E::Var(three))
+          })
+        ),
+        S::Return(E::Var(two))
+      })
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
+
+TEST(ParserTest, ComplexReturnTypeWithParen) {
+  std::string source = R"(
+  func one() -> ((Int) -> (Int) -> Int) {
+    func two(a: Int) -> ((Int) -> Int) {
+      func three(b: Int) -> Int {
+        return b
+      }
+      return three
+    }
+    return two
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto one = strings.intern("one");
+  auto two = strings.intern("two");
+  auto three = strings.intern("three");
+  auto a = strings.intern("a");
+  auto b = strings.intern("b");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      one,
+      {},
+      T::Function(
+        {T::Int()},
+        T::Function({T::Int()}, T::Int())
+      ),
+      S::Block({
+        S::Function(
+          two,
+          {Var(a, T::Int())},
+          T::Function({T::Int()}, T::Int()),
+          S::Block({
+            S::Function(
+              three,
+              {Var(b, T::Int())},
+              T::Int(),
+              S::Block({
+                S::Return(E::Var(b))
+              })
+            ),
+            S::Return(E::Var(three))
+          })
+        ),
+        S::Return(E::Var(two))
+      })
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
+
+TEST(ParserTest, RedundantParenReturnType) {
+  std::string source = R"(
+  func add(x: Int, y: Int) -> (Int) {
+    return x + y
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto add = strings.intern("add");
+  auto x = strings.intern("x");
+  auto y = strings.intern("y");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      add,
+      {Var(x, T::Int()), Var(y, T::Int())},
+      T::Int(), // Redundant parens around Int shouldn't affect the AST
+      S::Block({
+        S::Return(E::Add(E::Var(x), E::Var(y)))
+      })
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
+
+TEST(ParserTest, ImplicitVoidReturnType) {
+  std::string source = R"(
+  func nothing() {
+
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto nothing = strings.intern("nothing");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      nothing,
+      {},
+      T::Void(), // Redundant parens around Int shouldn't affect the AST
+      S::Block({})
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
+
+TEST(ParserTest, ExplicitVoidReturnType) {
+  std::string source = R"(
+  func nothing() -> () {
+
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto nothing = strings.intern("nothing");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      nothing,
+      {},
+      T::Void(), // Redundant parens around Int shouldn't affect the AST
+      S::Block({})
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
+
+TEST(ParserTest, FunctionAsParameter) {
+  std::string source = R"(
+  func applyTwice(f: (Int) -> Int, x: Int) -> Int {
+    return f(f(x))
+  }
+  )";
+  Scanner scanner(source);
+  StringInterner strings;
+  Parser parser(scanner, strings);
+
+  auto applyTwice = strings.intern("applyTwice");
+  auto f = strings.intern("f");
+  auto x = strings.intern("x");
+
+  auto ast = parser.parse();
+
+  auto expectedAst = S::Block({
+    S::Function(
+      applyTwice,
+      {
+        Var(f, T::Function({T::Int()}, T::Int())),
+        Var(x, T::Int())
+      },
+      T::Int(),
+      S::Block({
+        S::Return(
+          E::Apply(
+            E::Var(f),
+            {
+              E::Apply(
+                E::Var(f),
+                {E::Var(x)}
+              )
+            }
+          )
+        )
+      })
+    )
+  });
+
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
+  ASSERT_EQ(*expectedAst, *ast);
+}
