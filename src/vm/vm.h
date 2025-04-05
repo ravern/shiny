@@ -22,6 +22,7 @@ class VM {
   ObjectPtr<ClosureObject> closure;
   int ip;
   int bp;
+  std::vector<Value> globals;
   std::vector<Value> stack;
   std::vector<Frame> callStack;
   std::vector<ObjectPtr<UpvalueObject>> upvalueStack;
