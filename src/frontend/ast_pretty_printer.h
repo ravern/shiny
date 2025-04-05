@@ -149,6 +149,15 @@ public:
     isLastChild.pop_back();
   }
 
+  void visitExprStmt(ExprStmt& stmt) {
+    printPrefix();
+    std::cout << "Expr " << std::endl;
+
+    isLastChild.push_back(true);
+    visit(*stmt.expression);
+    isLastChild.pop_back();
+  }
+
   void visitReturnStmt(ReturnStmt& stmt) {
     printPrefix();
     std::cout << "Return" << std::endl;

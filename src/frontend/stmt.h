@@ -9,6 +9,7 @@ enum class StmtKind {
   Declare,
   Assign,
   Function,
+  Expr,
   Return,
   If
 };
@@ -123,6 +124,24 @@ public:
     if (*returnType != *otherFunc.returnType) return false;
     if (*body != *otherFunc.body) return false;
     return true;
+  }
+};
+
+class ExprStmt : public Stmt {
+public:
+  std::shared_ptr<Expr> expression;
+
+  explicit ExprStmt(std::shared_ptr<Expr> expression)
+    : Stmt(StmtKind::Expr),
+      expression(std::move(expression)) {}
+
+  bool operator==(const Stmt& other) const override {
+    if (kind != other.kind) {
+      return false;
+    }
+
+    const auto& otherStmt = static_cast<const ExprStmt&>(other);
+    return *expression == *otherStmt.expression;
   }
 };
 

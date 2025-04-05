@@ -127,6 +127,11 @@ namespace S {
                                           std::move(returnType), std::move(body));
   }
 
+  // Expression statement
+  inline std::shared_ptr<ExprStmt> Expression(std::shared_ptr<Expr> value) {
+    return std::make_shared<ExprStmt>(std::move(value));
+  }
+
   // Return statement
   inline std::shared_ptr<ReturnStmt> Return(std::shared_ptr<Expr> value) {
     return std::make_shared<ReturnStmt>(std::move(value));

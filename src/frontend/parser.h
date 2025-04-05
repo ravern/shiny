@@ -101,7 +101,7 @@ class Parser {
       if (match(TOKEN_FUNC)) {
         return functionStatement();
       }
-      throw errorAtCurrent("Expected statement");
+      return expressionStatement();
     } catch (const ParseError& e) {
       synchronize();
       return nullptr;
@@ -150,6 +150,11 @@ class Parser {
     auto body = block();
 
     return S::Function(symbol, params, returnType, body);
+  }
+
+  std::shared_ptr<Stmt> expressionStatement() {
+    auto expr = expression();
+    return S::Expression(expr);
   }
 
   std::shared_ptr<Type> parseType(std::string_view str) {
