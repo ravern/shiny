@@ -131,11 +131,10 @@ class Parser {
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         auto paramName = consume(TOKEN_IDENTIFIER, "Expected identifier");
-        consume(TOKEN_COLON, "Expected ':'");
-        auto paramType = consume(TOKEN_IDENTIFIER, "Expected type for function parameter");
         auto paramSymbol = strings.intern(std::string(paramName.lexeme));
-        auto type = parseType(paramType.lexeme);
-        Var param(paramSymbol, type);
+        consume(TOKEN_COLON, "Expected ':'");
+        auto paramType = type();
+        Var param(paramSymbol, paramType);
         params.push_back(param);
       } while (match(TOKEN_COMMA));
     }
@@ -143,8 +142,7 @@ class Parser {
 
     std::shared_ptr<Type> returnType = T::Void();
     if (match(TOKEN_ARROW)) {
-      auto argType = consume(TOKEN_IDENTIFIER, "Expected type for function result");
-      returnType = parseType(argType.lexeme);
+      returnType = type();
     }
 
     auto body = block();
@@ -155,15 +153,6 @@ class Parser {
   std::shared_ptr<Stmt> expressionStatement() {
     auto expr = expression();
     return S::Expression(expr);
-  }
-
-  std::shared_ptr<Type> parseType(std::string_view str) {
-    std::shared_ptr<Type> type =
-       str == "Int" ? std::static_pointer_cast<Type>(T::Int())
-     : str == "Double" ? std::static_pointer_cast<Type>(T::Double())
-     : str == "Bool" ? std::static_pointer_cast<Type>(T::Bool())
-     : throw std::runtime_error("Unexpected type");
-    return type;
   }
 
   std::shared_ptr<Expr> expression() { return logicalOr(); }
@@ -266,6 +255,41 @@ class Parser {
       return expr;
     }
     throw errorAtCurrent("Expected expression");
+  }
+
+  std::shared_ptr<Type> type() {
+    if (match(TOKEN_IDENTIFIER)) {
+      std::string_view name = previous.lexeme;
+      if (name == "Int") return T::Int();
+      if (name == "Double") return T::Double();
+      if (name == "Bool") return T::Bool();
+      throw errorAtPrevious("Cannot find type '" + std::string(name) + "' in scope");
+    }
+
+    if (match(TOKEN_LEFT_PAREN)) {
+      if (match(TOKEN_RIGHT_PAREN)) {
+        return T::Void();
+      }
+
+      // Try parsing one or more types as parameters
+      std::vector<std::shared_ptr<Type>> parameters;
+      do {
+        parameters.push_back(type());
+      } while (match(TOKEN_COMMA));
+      consume(TOKEN_RIGHT_PAREN, "Expected ')'");
+
+      // Look ahead: is this a function type?
+      if (match(TOKEN_ARROW)) {
+        auto returnType = type();
+        return T::Function(parameters, returnType);
+      }
+
+      // Is this a grouped type? e.g. (Int)
+      if (parameters.size() == 1) {
+        return parameters[0];
+      }
+    }
+    throw errorAtCurrent("Expected type");
   }
 
   void advance() {
