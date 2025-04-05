@@ -1,3 +1,3 @@
 var x = 1
-var y: Float = 2
-var z = x + y
+var y = 2
+x

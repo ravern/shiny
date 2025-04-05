@@ -29,6 +29,7 @@ class VM {
   int ip;
   int bp;
   Chunk* chunk;
+  std::vector<Value> globals;
   std::vector<Value> stack;
   std::vector<Frame> callStack;
   std::optional<ObjectPtr<UpvalueObject>> upvalueStack;

@@ -336,6 +336,19 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         break;
       }
+      case Opcode::GLOBAL_LOAD: {
+        stack.push_back(globals[operand]);
+        break;
+      }
+      case Opcode::GLOBAL_STORE: {
+        if (operand >= globals.size()) {
+          globals.resize(operand + 1); // Resize to allow new globals
+        }
+        globals[operand] = stack.back();
+        stack.pop_back();
+        break;
+      }
+
       case Opcode::DUP: {
         stack.push_back(stack.back());
         break;

@@ -33,7 +33,9 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   Stmt& ast;
 
   FunctionObject function;
-  std::optional<SymbolId> name;
+  std::optional<VariableName> name;
+
+  std::vector<VariableName> globals;
 
  public:
   Compiler(Compiler* enclosing_compiler, FunctionKind kind,
@@ -59,12 +61,13 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
         }
-        declare(stringInterner.intern("__function__"));
-        define();
+        auto name = stringInterner.intern("__function__");
+        declare(name);
+        define(name);
         for (int i = 0; i < functionStmt.params.size(); ++i) {
           auto& param = functionStmt.params.at(i);
           declare(param.name);
-          define();
+          define(param.name);
         }
         visit(*functionStmt.body);
         emit(Opcode::NIL);
@@ -109,8 +112,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     int index = resolveLocal(name);
     if (index != -1) {
       emit(Opcode::LOAD, index);
-    } else if ((index = resolveUpvalue(name) != -1)) {
+    } else if ((index = resolveUpvalue(name)) != -1) {
       emit(Opcode::UPVALUE_LOAD, index);
+    } else if ((index = resolveGlobal(name)) != -1) {
+      emit(Opcode::GLOBAL_LOAD, index);
     } else {
       throw std::runtime_error(
           "Variable name not found");  // this should never happen; caught by
@@ -188,7 +193,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   void visitDeclareStmt(DeclareStmt& stmt) {
     declare(stmt.var.name);
     visit(*stmt.expression);
-    define();
+    define(stmt.var.name);
   }
 
   void visitAssignStmt(AssignStmt& stmt) {
@@ -200,6 +205,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       emit(Opcode::STORE, index);
     } else if ((index = resolveUpvalue(name) != -1)) {
       emit(Opcode::UPVALUE_STORE, index);
+    } else if ((index = resolveGlobal(name) != -1)) {
+      emit(Opcode::GLOBAL_STORE, index);
     } else {
       throw std::runtime_error(
           "Variable name not found");  // this should never happen; caught by
@@ -210,7 +217,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
     declare(name);
-    define();  // function body can reference itself
+    define(name);  // function body can reference itself
 
     auto compiler =
         Compiler(this, FunctionKind::Function, stringInterner, stmt, name);
@@ -251,6 +258,21 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     return -1;
   }
 
+  int resolveGlobal(VariableName name) {
+    if (kind != FunctionKind::TopLevel) {
+      return enclosingCompiler->resolveGlobal(name);
+    }
+
+    for (int i = 0; i < globals.size(); i++) {
+      auto& global = globals.at(i);
+      if (global == name) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
  private:
   void beginScope() { scopeDepth++; }
 
@@ -286,6 +308,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   void declare(VariableName name) {
+    if (isTopLevel()) {
+      return;
+    }
+
     // check that local variable is unique in the current scope
     // note that all variables are local variables
     for (int i = locals.size() - 1; i >= 0; i--) {
@@ -294,8 +320,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         break;
       }
 
-      if (local.name ==
-          name) {  // this feels like it should be checked in an earlier phase
+      // this feels like it should be checked in an earlier phase
+      if (local.name == name) {
         throw std::runtime_error("Invalid redeclaration of '" +
                                  stringInterner.get(name) + "'");
       }
@@ -308,9 +334,20 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     locals.push_back(local);
   }
 
-  void define() {
+  void define(VariableName name) {
+    if (isTopLevel()) {
+      globals.push_back(name);
+      emit(Opcode::GLOBAL_STORE, globals.size() - 1);
+      return;
+    }
+
     auto& local = locals.back();
+    assert(local.name == name);
     local.depth = scopeDepth;
+  }
+
+  bool isTopLevel() {
+    return scopeDepth == 0 && kind == FunctionKind::TopLevel;
   }
 
   void emitConstant(Value constant) {

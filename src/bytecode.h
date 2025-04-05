@@ -64,6 +64,9 @@ enum class Opcode : uint8_t {
   OBJECT_GET_MEMBER = 0x81,  // operand: index of member
   OBJECT_SET_MEMBER = 0x82,  // operand: index of member
   OBJECT_GET_METHOD = 0x83,  // operand: index of method definition
+
+  GLOBAL_LOAD = 0x91,   // operand: index of global
+  GLOBAL_STORE = 0x92,  // operand: index of global
 };
 
 struct Chunk {

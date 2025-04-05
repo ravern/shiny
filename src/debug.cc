@@ -97,6 +97,10 @@ std::string opcodeToString(Opcode opcode) {
       return "OBJECT_SET_MEMBER";
     case Opcode::OBJECT_GET_METHOD:
       return "OBJECT_GET_METHOD";
+    case Opcode::GLOBAL_LOAD:
+      return "GLOBAL_LOAD";
+    case Opcode::GLOBAL_STORE:
+      return "GLOBAL_STORE";
     default:
       return "UNKNOWN";
   }
@@ -134,6 +138,8 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
       case Opcode::JUMP:
       case Opcode::UPVALUE_LOAD:
       case Opcode::UPVALUE_STORE:
+      case Opcode::GLOBAL_LOAD:
+      case Opcode::GLOBAL_STORE:
       case Opcode::OBJECT_GET_MEMBER:
       case Opcode::OBJECT_SET_MEMBER:
       case Opcode::OBJECT_GET_METHOD: {

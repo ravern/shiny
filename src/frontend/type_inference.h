@@ -151,6 +151,11 @@ private:
         assignStmt.var.type = varType;
         break;
       }
+      case StmtKind::Expr: {
+        auto& exprStmt = static_cast<ExprStmt&>(stmt);
+        substituteAst(*exprStmt.expression);
+        break;
+      }
       case StmtKind::Function: {
         auto& funStmt = static_cast<FunctionStmt&>(stmt);
         for (auto& param : funStmt.params) {
