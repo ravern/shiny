@@ -16,7 +16,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
   closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
   ip = 0;
   bp = 0;
-  Chunk* chunk = &closure->getFunction()->getChunk();
+  chunk = &closure->getFunction()->getChunk();
 
   while (true) {
     // Fetch and decode the current instruction
@@ -55,18 +55,15 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
 
         // Capture all the upvalues to create the closure
         std::vector<ObjectPtr<UpvalueObject>> upvalues;
-        for (auto& upvalue : newFunction->getUpvalues()) {
-          if (upvalue.isLocal) {
-            int stackSlot = bp + upvalue.index;
-            ObjectPtr<UpvalueObject> upvalueObject(
-                std::move(UpvalueObject(&stack[stackSlot])));
-            upvalueStack.push_back(upvalueObject);
-            upvalues.push_back(upvalueObject);
+        for (auto& functionUpvalue : newFunction->getUpvalues()) {
+          if (functionUpvalue.isLocal) {
+            int stackSlot = bp + functionUpvalue.index;
+            auto upvalue = pushUpvalue(&stack[stackSlot]);
+            upvalues.push_back(upvalue);
           } else {
-            ObjectPtr<ClosureObject> parentClosure = callStack.back().closure;
-            ObjectPtr<UpvalueObject> parentUpvalue =
-                parentClosure->getUpvalues()[upvalue.index];
-            upvalues.push_back(parentUpvalue);
+            auto parentClosure = callStack.back().closure;
+            auto upvalue = parentClosure->getUpvalue(functionUpvalue.index);
+            upvalues.push_back(upvalue);
           }
         }
 
@@ -354,14 +351,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::CALL: {
-        callStack.push_back({closure, ip, bp});
-        int functionStackSlot = stack.size() - operand - 1;
-        ObjectPtr<ClosureObject> newClosure =
-            stack[functionStackSlot].asObject<ClosureObject>();
-        closure = newClosure;
-        ip = 0;
-        bp = functionStackSlot;
-        chunk = &closure->getFunction()->getChunk();
+        pushFrame(operand);
         break;
       }
       case Opcode::RETURN: {
@@ -370,6 +360,9 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
               "Tried to return from the top-level function");
         }
 
+        // Close all the upvalues up to stack base
+        closeUpvalues(&stack[bp]);
+
         // Pop everything up to the base pointer
         Value returnValue = stack.back();
         while (stack.size() > bp) {
@@ -377,21 +370,78 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         }
         stack.push_back(returnValue);
 
-        // Restore the frame
-        Frame frame = callStack.back();
-        callStack.pop_back();
-        closure = frame.closure;
-        ip = frame.ip;
-        bp = frame.bp;
-        chunk = &closure->getFunction()->getChunk();
+        popFrame();
         break;
       }
       case Opcode::HALT: {
-        std::cout << stack.back().asInt() << std::endl;
+        std::cout << "HALTING WITH RESULT " << stack.back().asInt()
+                  << std::endl;
         return;
       }
       default:
         throw std::runtime_error("Unimplemented opcode");
     }
+  }
+}
+
+void VM::pushFrame(int arity) {
+  int newBp = stack.size() - arity - 1;
+  auto newClosure = stack[newBp].asObject<ClosureObject>();
+  callStack.push_back({closure, ip, bp});
+  closure = newClosure;
+  ip = 0;
+  bp = newBp;
+  chunk = &closure->getFunction()->getChunk();
+}
+
+void VM::popFrame() {
+  Frame frame = callStack.back();
+  callStack.pop_back();
+  closure = frame.closure;
+  ip = frame.ip;
+  bp = frame.bp;
+  chunk = &closure->getFunction()->getChunk();
+}
+
+ObjectPtr<UpvalueObject> VM::captureUpvalue(Upvalue functionUpvalue) {
+  if (functionUpvalue.isLocal) {
+    int stackSlot = bp + functionUpvalue.index;
+    auto upvalue = pushUpvalue(&stack[stackSlot]);
+    return upvalue;
+  } else {
+    auto parentClosure = callStack.back().closure;
+    auto upvalue = parentClosure->getUpvalue(functionUpvalue.index);
+    return upvalue;
+  }
+}
+
+ObjectPtr<UpvalueObject> VM::pushUpvalue(Value* value) {
+  ObjectPtr<UpvalueObject> upvalue;
+  if (upvalueStack.has_value()) {
+    upvalue = ObjectPtr<UpvalueObject>(
+        std::move(UpvalueObject(value, upvalueStack.value())));
+  } else {
+    upvalue = ObjectPtr<UpvalueObject>(UpvalueObject(value));
+  }
+  upvalueStack = upvalue;
+  return upvalue;
+}
+
+void VM::closeUpvalues(Value* upTillValue) {
+  std::optional<ObjectPtr<UpvalueObject>> prev = std::nullopt;
+  std::optional<ObjectPtr<UpvalueObject>> current = upvalueStack;
+  while (true) {
+    if (!current.has_value() ||
+        current.value().get()->getValue() < upTillValue) {
+      break;
+    }
+    current.value()->close();
+    if (prev.has_value()) {
+      prev.value()->getNext() = current.value()->getNext();
+    } else {
+      upvalueStack = current.value()->getNext();
+    }
+    prev = current;
+    current = current.value()->getNext();
   }
 }

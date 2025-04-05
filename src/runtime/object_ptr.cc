@@ -41,6 +41,11 @@ ObjectPtr<T>::~ObjectPtr() noexcept(false) {
 }
 
 template <typename T>
+T* ObjectPtr<T>::get() const {
+  return ptr->get<T>();
+}
+
+template <typename T>
 ObjectPtr<T>& ObjectPtr<T>::operator=(const ObjectPtr& other) {
   ptr = other.ptr;
   if (ptr != nullptr) {

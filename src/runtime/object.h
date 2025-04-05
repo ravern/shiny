@@ -18,7 +18,7 @@ class FunctionObject {
   FunctionObject();
   ~FunctionObject() = default;
 
-  SymbolId getName() const;
+  std::optional<SymbolId> getName() const;
   Chunk& getChunk();
   const Chunk& getChunk() const;
   std::vector<Upvalue>& getUpvalues();
@@ -29,17 +29,25 @@ class FunctionObject {
  private:
   Chunk chunk;
   std::vector<Upvalue> upvalues;
-  SymbolId name;
+  std::optional<SymbolId> name;
 };
 
 class UpvalueObject {
  public:
   UpvalueObject(Value* value);
+  UpvalueObject(Value* value, ObjectPtr<UpvalueObject> next);
   ~UpvalueObject() = default;
+
+  void close();
+
+  Value* getValue() const;
+  std::optional<ObjectPtr<UpvalueObject>>& getNext();
+  const std::optional<ObjectPtr<UpvalueObject>>& getNext() const;
 
  private:
   Value closedValue;
   Value* value;
+  std::optional<ObjectPtr<UpvalueObject>> next;
 };
 
 class ClosureObject {
@@ -53,6 +61,8 @@ class ClosureObject {
   const ObjectPtr<FunctionObject>& getFunction() const;
   std::vector<ObjectPtr<UpvalueObject>>& getUpvalues();
   const std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() const;
+  ObjectPtr<UpvalueObject>& getUpvalue(int index);
+  const ObjectPtr<UpvalueObject>& getUpvalue(int index) const;
 
  private:
   ObjectPtr<FunctionObject> function;
@@ -69,6 +79,11 @@ class Object {
   template <typename T>
   T* get() {
     return &std::get<T>(data);
+  }
+
+  template <>
+  std::monostate* get() {
+    return nullptr;
   }
 
   std::variant<FunctionObject, UpvalueObject, ClosureObject> data;

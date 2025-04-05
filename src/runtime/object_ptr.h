@@ -14,14 +14,15 @@ class ObjectPtr {
   ObjectPtr(ObjectPtr&& other);
   ~ObjectPtr() noexcept(false);
 
+  T* get() const;
+
   ObjectPtr& operator=(const ObjectPtr& other);
   ObjectPtr& operator=(ObjectPtr&& other);
   T* operator->();
 
+  Object* __getPtr() const { return ptr; }
   static ObjectPtr<T> __remember(uint64_t raw);
   uint64_t __forget();
-
-  Object* getPtr() const { return ptr; }
 
  private:
   Object* ptr;

@@ -1,8 +1,8 @@
 #include "object.h"
 
-FunctionObject::FunctionObject() : name(34) {}
+FunctionObject::FunctionObject() : name(std::nullopt) {}
 
-SymbolId FunctionObject::getName() const { return name; }
+std::optional<SymbolId> FunctionObject::getName() const { return name; }
 
 Chunk& FunctionObject::getChunk() { return chunk; }
 
@@ -19,7 +19,26 @@ int FunctionObject::addUpvalue(Upvalue upvalue) {
   return upvalues.size() - 1;
 }
 
-UpvalueObject::UpvalueObject(Value* value) : value(value) {}
+void UpvalueObject::close() {
+  closedValue = *value;
+  value = &closedValue;
+}
+
+Value* UpvalueObject::getValue() const { return value; }
+
+std::optional<ObjectPtr<UpvalueObject>>& UpvalueObject::getNext() {
+  return next;
+}
+
+const std::optional<ObjectPtr<UpvalueObject>>& UpvalueObject::getNext() const {
+  return next;
+}
+
+UpvalueObject::UpvalueObject(Value* value)
+    : closedValue(Value::NIL), value(value), next(std::nullopt) {}
+
+UpvalueObject::UpvalueObject(Value* value, ObjectPtr<UpvalueObject> next)
+    : closedValue(Value::NIL), value(value), next(std::move(next)) {}
 
 ClosureObject::ClosureObject(ObjectPtr<FunctionObject> function)
     : function(std::move(function)) {
@@ -43,4 +62,12 @@ std::vector<ObjectPtr<UpvalueObject>>& ClosureObject::getUpvalues() {
 const std::vector<ObjectPtr<UpvalueObject>>& ClosureObject::getUpvalues()
     const {
   return upvalues;
+}
+
+ObjectPtr<UpvalueObject>& ClosureObject::getUpvalue(int index) {
+  return upvalues[index];
+}
+
+const ObjectPtr<UpvalueObject>& ClosureObject::getUpvalue(int index) const {
+  return upvalues[index];
 }
