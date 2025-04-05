@@ -7,7 +7,6 @@
 #include "error.h"
 #include "token.h"
 
-
 using namespace Shiny;
 
 class ScanError : public Error {
@@ -34,7 +33,7 @@ public:
     start = 0;
     current = 0;
     line = 1;
-    isAtStartOfLine = false;
+    isAtStartOfLine = true;
   }
 
   std::vector<Token> scanAll() {
