@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <variant>
 
 #include "../bytecode.h"
@@ -69,6 +70,24 @@ class ClosureObject {
   std::vector<ObjectPtr<UpvalueObject>> upvalues;
 };
 
+class ArrayObject {
+ public:
+  ArrayObject();
+  ~ArrayObject() = default;
+
+ private:
+  std::vector<Value> values;
+};
+
+class DictObject {
+ public:
+  DictObject();
+  ~DictObject() = default;
+
+ private:
+  std::unordered_map<Value, Value> values;
+};
+
 class Object {
  public:
   template <typename T>
@@ -86,7 +105,9 @@ class Object {
     return nullptr;
   }
 
-  std::variant<FunctionObject, UpvalueObject, ClosureObject> data;
+  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject,
+               DictObject>
+      data;
   int strongCount;
   int weakCount;
 };

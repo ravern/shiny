@@ -49,6 +49,14 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.push_back(chunk->constants[operand]);
         break;
       }
+      case Opcode::ARRAY: {
+        stack.push_back(Value(std::move(ObjectPtr<ArrayObject>())));
+        break;
+      }
+      case Opcode::DICT: {
+        stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
+        break;
+      }
       case Opcode::CLOSURE: {
         ObjectPtr<FunctionObject> newFunction =
             chunk->constants[operand].asObject<FunctionObject>();
@@ -378,6 +386,26 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
                   << std::endl;
         return;
       }
+
+      // Opcodes for upvalue manipulation
+      case Opcode::UPVALUE_LOAD: {
+        int upvalueIndex = operand;
+        auto upvalue = closure->getUpvalue(upvalueIndex);
+        stack.push_back(*upvalue->getValue());
+        break;
+      }
+      case Opcode::UPVALUE_STORE: {
+        int upvalueIndex = operand;
+        auto upvalue = closure->getUpvalue(upvalueIndex);
+        *upvalue->getValue() = stack.back();
+        stack.pop_back();
+        break;
+      }
+      case Opcode::UPVALUE_CLOSE: {
+        closeUpvalues(&stack[stack.size() - 1]);
+        break;
+      }
+
       default:
         throw std::runtime_error("Unimplemented opcode");
     }
