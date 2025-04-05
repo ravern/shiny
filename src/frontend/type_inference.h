@@ -463,6 +463,11 @@ private:
 
         return false;
       }
+      case StmtKind::Expr: {
+        auto& exprStmt = static_cast<ExprStmt&>(stmt);
+        infer(*exprStmt.expression);
+        return true;
+      }
       case StmtKind::Return: {
         auto& returnStmt = static_cast<ReturnStmt&>(stmt);
         check(*returnStmt.expression, enclosingFunction->returnType);

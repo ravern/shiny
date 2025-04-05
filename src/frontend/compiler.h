@@ -221,6 +221,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     emit(Opcode::CLOSURE, constantIndex);
   }
 
+  void visitExprStmt(ExprStmt& stmt) {
+    visit(*stmt.expression);
+    emit(Opcode::POP);
+  }
+
   void visitReturnStmt(ReturnStmt& stmt) {
     if (kind == FunctionKind::TopLevel) {
       throw std::runtime_error("Return invalid outside of a func");

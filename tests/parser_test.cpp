@@ -5,12 +5,13 @@
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/scanner.h"
 
-TEST(ParserTest, Test) {
+TEST(ParserTest, ValidProgram) {
   std::string source = R"(
   var x = 3 + 2
   var y = true
   var z = false
   var a = y && z
+  a
   )";
   Scanner scanner(source);
   StringInterner strings;
@@ -27,8 +28,12 @@ TEST(ParserTest, Test) {
         S::Declare(y, E::Bool(true)),
         S::Declare(z, E::Bool(false)),
         S::Declare(a, E::And(E::Var(y), E::Var(z))),
+        S::Expression(E::Var(a))
       });
   ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
+  printer.print(*ast);
+  printer.print(*expectedAst);
   ASSERT_EQ(*expectedAst, *ast);
 }
 
@@ -96,8 +101,6 @@ TEST(ParserTest, FunctionWithReturnType) {
   auto y = strings.intern("y");
   auto z = strings.intern("z");
   auto ast = parser.parse();
-  ASSERT_FALSE(parser.hadError());
-
   auto expectedAst = S::Block({
     S::Function(
       add,
@@ -109,11 +112,11 @@ TEST(ParserTest, FunctionWithReturnType) {
       })
     )
   });
-  ASTPrettyPrinter printer(strings);
 
+  ASSERT_FALSE(parser.hadError());
+  ASTPrettyPrinter printer(strings);
   printer.print(*ast);
   printer.print(*expectedAst);
-
   ASSERT_EQ(*expectedAst, *ast);
 }
 

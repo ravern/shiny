@@ -40,6 +40,8 @@ public:
         return static_cast<ImplClass*>(this)->visitAssignStmt(static_cast<AssignStmt&>(stmt), std::forward<Args>(args)...);
       case StmtKind::Function:
         return static_cast<ImplClass*>(this)->visitFunctionStmt(static_cast<FunctionStmt&>(stmt), std::forward<Args>(args)...);
+      case StmtKind::Expr:
+        return static_cast<ImplClass*>(this)->visitExprStmt(static_cast<ExprStmt&>(stmt), std::forward<Args>(args)...);
       case StmtKind::Return:
         return static_cast<ImplClass*>(this)->visitReturnStmt(static_cast<ReturnStmt&>(stmt), std::forward<Args>(args)...);
       case StmtKind::If:
