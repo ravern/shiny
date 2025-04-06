@@ -22,7 +22,9 @@ TEST(CompilerTest, Test) {
   ASTPrettyPrinter printer(interner);
   printer.print(*ast);
 
-  auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
+  std::vector<VariableName> globals;
+
+  auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, globals, interner, *ast);
   auto result = compiler.compile();
 
   std::cout << "Done" << std::endl;
@@ -84,7 +86,9 @@ TEST(CompilerTest, Closures) {
   ASTPrettyPrinter printer(interner);
   printer.print(*ast);
 
-  auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
+  std::vector<VariableName> globals;
+
+  auto compiler = Compiler(nullptr, Compiler::FunctionKind::TopLevel, globals, interner, *ast);
   auto result = compiler.compile();
 
   std::cout << "Closure example compiled." << std::endl;

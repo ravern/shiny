@@ -28,6 +28,8 @@ add_library(core
         frontend/error.h
         frontend/parser.h
         frontend/token.h
+        shiny.cc
+        shiny.h
 )
 
 add_executable(shiny main.cc)
