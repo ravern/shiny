@@ -1,6 +1,7 @@
 #include "shiny.h"
 
 #include <fstream>
+#include <linenoise.h>
 
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
@@ -53,13 +54,21 @@ namespace Shiny {
       run(input);
     }
 
+
     void repl() {
       std::cout << "Shiny REPL. Type 'exit' to quit.\n";
-      std::string input;
-      while (true) {
-        std::cout << "> ";
-        std::getline(std::cin, input);
+
+      char* line = nullptr;
+      while ((line = linenoise("> ")) != nullptr) {
+        std::string input(line);
+        free(line);
+
         if (input == "exit") break;
+
+        if (!input.empty()) {
+          linenoiseHistoryAdd(input.c_str());
+        }
+
         run(input);
       }
     }
