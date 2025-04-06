@@ -11,12 +11,13 @@
 
 VM::VM() {}
 
-void VM::evaluate(ObjectPtr<FunctionObject> function) {
+Value VM::evaluate(ObjectPtr<FunctionObject> function) {
   // Initialize the VM state for a new evaluation
   closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
   ip = 0;
   bp = 0;
   chunk = &closure->getFunction()->getChunk();
+  lastPoppedValue = Value::NIL;
 
   while (true) {
     // Fetch and decode the current instruction
@@ -342,7 +343,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
       }
       case Opcode::GLOBAL_STORE: {
         if (operand >= globals.size()) {
-          globals.resize(operand + 1); // Resize to allow new globals
+          globals.resize(operand + 1);  // Resize to allow new globals
         }
         globals[operand] = stack.back();
         stack.pop_back();
@@ -354,6 +355,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::POP: {
+        lastPoppedValue = stack.back();
         stack.pop_back();
         break;
       }
@@ -395,9 +397,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::HALT: {
-        std::cout << "HALTING WITH RESULT " << stack.back().asInt()
-                  << std::endl;
-        return;
+        return lastPoppedValue;
       }
 
       // Opcodes for upvalue manipulation

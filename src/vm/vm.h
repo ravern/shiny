@@ -16,7 +16,7 @@ class VM {
  public:
   VM();
 
-  void evaluate(ObjectPtr<FunctionObject> function);
+  Value evaluate(ObjectPtr<FunctionObject> function);
 
  private:
   void pushFrame(int arity);
@@ -33,4 +33,5 @@ class VM {
   std::vector<Value> stack;
   std::vector<Frame> callStack;
   std::optional<ObjectPtr<UpvalueObject>> upvalueStack;
+  Value lastPoppedValue;
 };

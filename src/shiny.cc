@@ -13,6 +13,7 @@ namespace Shiny {
   class Interpreter {
     StringInterner interner;
     TypeInference inference;
+    VM vm;
     std::vector<VariableName> globals;
 
   public:
@@ -35,8 +36,8 @@ namespace Shiny {
         Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, globals, interner, *ast);
         auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
-        VM vm;
-        vm.evaluate(rootFunction);
+        Value result = vm.evaluate(rootFunction);
+        std::cout << result.asInt() << std::endl;
       } catch (const Error& e) {
         std::cout << "Error: " << e.what() << std::endl;
       }
