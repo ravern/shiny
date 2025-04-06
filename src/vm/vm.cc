@@ -54,7 +54,7 @@ void VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::DICT: {
-        stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
+        // stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
         break;
       }
       case Opcode::CLOSURE: {

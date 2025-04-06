@@ -89,3 +89,5 @@ template class ObjectPtr<FunctionObject>;
 template class ObjectPtr<UpvalueObject>;
 template class ObjectPtr<ClosureObject>;
 template class ObjectPtr<std::monostate>;
+template class ObjectPtr<ArrayObject>;
+// template class ObjectPtr<DictObject>;

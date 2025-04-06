@@ -105,8 +105,7 @@ class Object {
     return nullptr;
   }
 
-  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject,
-               DictObject>
+  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject>
       data;
   int strongCount;
   int weakCount;
