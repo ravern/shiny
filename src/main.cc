@@ -11,6 +11,8 @@
 #include "vm/vm.h"
 
 StringInterner interner;
+TypeInference inference(interner);
+std::vector<VariableName> globals;
 
 void interpret(const std::string& source) {
   try {
@@ -21,13 +23,12 @@ void interpret(const std::string& source) {
       return;
     }
 
-    TypeInference inference(interner);
-    inference.perform(*ast);
+    inference.performRepl(*ast);
 
     ASTPrettyPrinter printer(interner);
     printer.print(*ast);
 
-    Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, interner, *ast);
+    Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, globals, interner, *ast);
     auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
     VM vm;

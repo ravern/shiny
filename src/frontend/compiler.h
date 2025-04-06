@@ -29,23 +29,24 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   std::vector<Local> locals;
   int scopeDepth = 0;  // starts from zero for every Compiler/function.
 
+  std::vector<VariableName>& globals;
   StringInterner& stringInterner;
   Stmt& ast;
 
   FunctionObject function;
   std::optional<VariableName> name;
 
-  std::vector<VariableName> globals;
-
  public:
   Compiler(Compiler* enclosing_compiler, FunctionKind kind,
+           std::vector<VariableName>& globals,
            StringInterner& stringInterner, Stmt& ast,
            std::optional<SymbolId> name = std::nullopt)
       : enclosingCompiler(enclosing_compiler),
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
-        name(name) {}
+        name(name),
+        globals(globals) {}
 
   FunctionObject compile() {
     switch (kind) {
@@ -220,7 +221,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     define(name);  // function body can reference itself
 
     auto compiler =
-        Compiler(this, FunctionKind::Function, stringInterner, stmt, name);
+        Compiler(this, FunctionKind::Function, globals, stringInterner, stmt, name);
     auto function = compiler.compile();
 
     uint32_t constantIndex =
