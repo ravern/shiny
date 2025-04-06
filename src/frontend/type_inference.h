@@ -53,6 +53,16 @@ public:
     substituteAst(expr);
   }
 
+  // retains global type mappings and can be called more than once
+  void performRepl(Stmt& ast) {
+    assert(ast.kind == StmtKind::Block);
+    auto blockStmt = static_cast<BlockStmt&>(ast);
+    infer(blockStmt, true);
+    solveConstraints();
+    clearConstraints();
+    substituteAst(blockStmt);
+  }
+
 private:
   std::shared_ptr<Type> substitute(std::shared_ptr<Type> ty) {
     switch (ty->kind) {
@@ -259,6 +269,10 @@ private:
     throw TypeNotEqualError(*lhsType, *rhsType);
   }
 
+  void clearConstraints() {
+    constraints.clear();
+  }
+
   bool hasTypeVar(const std::shared_ptr<Type>& type, TypeVar var) {
     switch (type->kind) {
       case TypeKind::Void:
@@ -403,11 +417,14 @@ private:
   }
 
   using FallsThrough = bool;
-  FallsThrough infer(Stmt& stmt) {
+  FallsThrough infer(Stmt& stmt, bool isTopLevel = false) {
     switch (stmt.kind) {
       case StmtKind::Block: {
         auto& block = static_cast<BlockStmt&>(stmt);
-        beginScope();
+        // isTopLevel && !env.empty() will use env[0]
+        if (!isTopLevel || envs.empty()) {
+          beginScope();
+        }
         auto fallsThrough = true;
         for (auto& stmt : block.statements) {
           auto stmtFallsThrough = infer(*stmt);
@@ -415,7 +432,9 @@ private:
             fallsThrough = false;
           }
         }
-        endScope();
+        if (!isTopLevel) {
+          endScope();
+        }
         return fallsThrough;
       }
       case StmtKind::Declare: {
