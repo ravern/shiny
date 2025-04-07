@@ -217,16 +217,17 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
-    declare(name);
-    define(name);  // function body can reference itself
+    declare(name);  // function body can reference itself
 
-    auto compiler =
-        Compiler(this, FunctionKind::Function, globals, stringInterner, stmt, name);
+    auto compiler = Compiler(this, FunctionKind::Function, globals,
+                             stringInterner, stmt, name);
     auto function = compiler.compile();
 
     uint32_t constantIndex =
         addConstant(ObjectPtr<FunctionObject>(std::move(function)));
     emit(Opcode::CLOSURE, constantIndex);
+
+    define(name);
   }
 
   void visitExprStmt(ExprStmt& stmt) {
