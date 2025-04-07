@@ -222,7 +222,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
-    declare(name);  // function body can reference itself
+    declare(name);
+    defineWithoutEmitIfGlobal(name); // allow recursion
 
     auto compiler = Compiler(this, FunctionKind::Function, globals,
                              stringInterner, stmt, name);
@@ -232,7 +233,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         addConstant(ObjectPtr<FunctionObject>(std::move(function)));
     emit(Opcode::CLOSURE, constantIndex);
 
-    define(name);
+    define(name, false);
   }
 
   void visitExprStmt(ExprStmt& stmt) {
@@ -341,9 +342,17 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     locals.push_back(local);
   }
 
-  void define(VariableName name) {
+  void defineWithoutEmitIfGlobal(VariableName name) {
     if (isTopLevel()) {
       globals.push_back(name);
+    }
+  }
+
+  void define(VariableName name, bool emitIfGlobal = true) {
+    if (isTopLevel()) {
+      if (emitIfGlobal) {
+        globals.push_back(name);
+      }
       emit(Opcode::GLOBAL_STORE, globals.size() - 1);
       return;
     }
