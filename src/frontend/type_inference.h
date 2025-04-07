@@ -373,11 +373,20 @@ private:
         auto rightType = infer(*binaryExpr.right);
         switch (binaryExpr.op) {
           case BinaryOperator::Add:
-          case BinaryOperator::Minus: {
+          case BinaryOperator::Minus:
+          case BinaryOperator::Multiply:
+          // TODO: dividing Double by Int should work
+          case BinaryOperator::Divide: {
             if (leftType->kind == TypeKind::Integer && rightType->kind == TypeKind::Integer) {
               return leftType;
             }
             if (leftType->kind == TypeKind::Double && rightType->kind == TypeKind::Double) {
+              return leftType;
+            }
+            throw TypeError("Invalid binary operand types");
+          }
+          case BinaryOperator::Modulo: {
+            if (leftType->kind == TypeKind::Integer && rightType->kind == TypeKind::Integer) {
               return leftType;
             }
             throw TypeError("Invalid binary operand types");

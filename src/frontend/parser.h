@@ -191,7 +191,20 @@ class Parser {
     return expr;
   }
 
-  std::unique_ptr<Expr> factor() { return unary(); }
+  std::unique_ptr<Expr> factor() {
+    auto expr = unary();
+    while (match(TOKEN_STAR) || match(TOKEN_SLASH) || match(TOKEN_PERCENT)) {
+      BinaryOperator op =
+          previous.type == TOKEN_STAR    ? BinaryOperator::Multiply
+        : previous.type == TOKEN_SLASH   ? BinaryOperator::Divide
+        : previous.type == TOKEN_PERCENT ? BinaryOperator::Modulo
+        : throw std::runtime_error("Unexpected token type");
+
+      auto rhs = unary();
+      expr = E::Binary(std::move(expr), op, std::move(rhs));
+    }
+    return expr;
+  }
 
   std::unique_ptr<Expr> unary() {
     if (match(TOKEN_BANG) || match(TOKEN_MINUS)) {

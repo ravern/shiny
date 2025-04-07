@@ -144,6 +144,9 @@ public:
 enum class BinaryOperator {
   Add,
   Minus,
+  Multiply,
+  Divide,
+  Modulo,
   And,
   Or,
 };
@@ -152,6 +155,9 @@ inline std::string toString(BinaryOperator op) {
   switch (op) {
     case BinaryOperator::Add: return "+";
     case BinaryOperator::Minus: return "-";
+    case BinaryOperator::Multiply: return "*";
+    case BinaryOperator::Divide: return "/";
+    case BinaryOperator::Modulo: return "%";
     case BinaryOperator::And: return "&&";
     case BinaryOperator::Or: return "||";
     default: return "Unknown BinaryOperator";
