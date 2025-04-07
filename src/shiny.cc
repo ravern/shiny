@@ -59,8 +59,8 @@ namespace Shiny {
     void repl() {
       std::cout << "Shiny REPL. Type 'exit' to quit.\n";
 
-      auto initialPrompt = "> ";
-      auto multilinePrompt = ". ";
+      auto initialPrompt = ">>> ";
+      auto multilinePrompt = "... ";
       auto currentPrompt = initialPrompt;
 
       std::string input;
@@ -70,7 +70,9 @@ namespace Shiny {
         free(_line);
 
         if (!line.empty() && line.back() == '\\') {
-          input.push_back('\n');
+          if (!input.empty()) {
+            input.push_back('\n');
+          }
           line.pop_back();
           input += line;
           currentPrompt = multilinePrompt;
@@ -79,6 +81,9 @@ namespace Shiny {
 
         if (input.empty() && line == "exit") {
           break;
+        }
+        if (!input.empty()) {
+          input.push_back('\n');
         }
         input += line;
 
