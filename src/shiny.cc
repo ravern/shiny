@@ -1,7 +1,9 @@
 #include "shiny.h"
 
+#include <readline/history.h>
+#include <readline/readline.h>
+
 #include <fstream>
-#include <linenoise.h>
 
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
@@ -54,22 +56,39 @@ namespace Shiny {
       run(input);
     }
 
-
     void repl() {
       std::cout << "Shiny REPL. Type 'exit' to quit.\n";
 
-      char* line = nullptr;
-      while ((line = linenoise("> ")) != nullptr) {
-        std::string input(line);
-        free(line);
+      auto initialPrompt = "> ";
+      auto multilinePrompt = ". ";
+      auto currentPrompt = initialPrompt;
 
-        if (input == "exit") break;
+      std::string input;
+      char* _line = nullptr;
+      while ((_line = readline(currentPrompt)) != nullptr) {
+        std::string line(_line);
+        free(_line);
 
-        if (!input.empty()) {
-          linenoiseHistoryAdd(input.c_str());
+        if (!line.empty() && line.back() == '\\') {
+          input.push_back('\n');
+          line.pop_back();
+          input += line;
+          currentPrompt = multilinePrompt;
+          continue;
         }
 
-        run(input);
+        if (input.empty() && line == "exit") {
+          break;
+        }
+        input += line;
+
+        currentPrompt = initialPrompt;
+
+        if (!input.empty()) {
+          add_history(input.c_str());
+          run(input);
+          input.clear();
+        }
       }
     }
   };
