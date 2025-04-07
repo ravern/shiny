@@ -27,9 +27,12 @@ public:
     : Error("Types are not equal: " + typeA.toString() + " and " + typeB.toString()) {}
 };
 
+using TypeEnv = std::unordered_map<VariableName, std::optional<std::shared_ptr<Type>>>;
+
 class TypeInference {
+  TypeEnv* globals;
   // nil value represents declared but not defined. used to prevent referencing a variable in the same assignment statement.
-  std::vector<std::unordered_map<VariableName, std::optional<std::shared_ptr<Type>>>> envs;
+  std::vector<TypeEnv> envs;
   std::vector<std::unique_ptr<TypeConstraint>> constraints;
   std::set<TypeVar> unbounded;
   // to check return type
@@ -38,29 +41,31 @@ class TypeInference {
   StringInterner& stringInterner;
 
 public:
-  explicit TypeInference(StringInterner& stringInterner)
-    : stringInterner(stringInterner) {}
+  explicit TypeInference(
+    StringInterner& stringInterner,
+    TypeEnv* globals = nullptr
+  ) : stringInterner(stringInterner), globals(globals) {
+    if (globals) {
+      envs.push_back(*globals);
+    } else {
+      envs.push_back({});
+    }
+  }
 
   void perform(Stmt& stmt) {
-    infer(stmt);
+    auto isTopLevel = globals != nullptr;
+    if (isTopLevel) {
+      assert(stmt.kind == StmtKind::Block);
+    }
+
+    infer(stmt, isTopLevel);
     solveConstraints();
     substituteAst(stmt);
-  }
 
-  void perform(Expr& expr) {
-    infer(expr);
-    solveConstraints();
-    substituteAst(expr);
-  }
-
-  // retains global type mappings and can be called more than once
-  void performRepl(Stmt& ast) {
-    assert(ast.kind == StmtKind::Block);
-    auto blockStmt = static_cast<BlockStmt&>(ast);
-    infer(blockStmt, true);
-    solveConstraints();
-    clearConstraints();
-    substituteAst(blockStmt);
+    // if there are no errors, update globals passed in
+    if (globals != nullptr) {
+      *globals = envs.front();
+    }
   }
 
 private:
@@ -269,10 +274,6 @@ private:
     throw TypeNotEqualError(*lhsType, *rhsType);
   }
 
-  void clearConstraints() {
-    constraints.clear();
-  }
-
   bool hasTypeVar(const std::shared_ptr<Type>& type, TypeVar var) {
     switch (type->kind) {
       case TypeKind::Void:
@@ -294,7 +295,7 @@ private:
         return hasTypeVar(functionType->ret, var);
       }
       default:
-        throw std::runtime_error("Unknown TypeKind in hasTypeVar");
+        throw std::runtime_error("Unknown TypeKind");
     }
   }
 
@@ -379,14 +380,14 @@ private:
             if (leftType->kind == TypeKind::Double && rightType->kind == TypeKind::Double) {
               return leftType;
             }
-            throw std::runtime_error("Invalid binary operand types");
+            throw TypeError("Invalid binary operand types");
           }
           case BinaryOperator::And:
           case BinaryOperator::Or:
             if (leftType->kind == TypeKind::Boolean && rightType->kind == TypeKind::Boolean) {
               return leftType;
             }
-            throw std::runtime_error("Invalid binary operand types");
+            throw TypeError("Invalid binary operand types");
           default:
             throw std::runtime_error("Unknown BinaryOperator");
         }
@@ -399,13 +400,13 @@ private:
             if (operandType->kind == TypeKind::Boolean) {
               return operandType;
             }
-            throw std::runtime_error("Invalid unary operand type");
+            throw TypeError("Invalid unary operand type");
           }
           case UnaryOperator::Negate: {
             if (operandType->kind == TypeKind::Integer || operandType->kind == TypeKind::Double) {
               return operandType;
             }
-            throw std::runtime_error("Invalid unary operand type");
+            throw TypeError("Invalid unary operand type");
           }
           default:
             throw std::runtime_error("Unknown UnaryOperator");
@@ -421,8 +422,7 @@ private:
     switch (stmt.kind) {
       case StmtKind::Block: {
         auto& block = static_cast<BlockStmt&>(stmt);
-        // isTopLevel && !env.empty() will use env[0]
-        if (!isTopLevel || envs.empty()) {
+        if (!isTopLevel) { // isTopLevel will use env[0] (globals)
           beginScope();
         }
         auto fallsThrough = true;
@@ -501,7 +501,7 @@ private:
         auto& ifStmt = static_cast<IfStmt&>(stmt);
         auto conditionType = infer(*ifStmt.condition);
         if (conditionType->kind != TypeKind::Boolean) {
-          throw std::runtime_error("If condition must be a boolean");
+          throw TypeError("If condition must be a boolean");
         }
         auto thenFallsThrough = infer(*ifStmt.thenBranch);
         // If there's no else branch, the if statement always falls through

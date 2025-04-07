@@ -16,4 +16,11 @@ public:
     : Error(message) {}
 };
 
+class TypeError : public Error {
+public:
+  TypeError(std::string message)
+    : Error(message) {}
+};
+
+
 #endif //ERROR_H

@@ -15,12 +15,13 @@
 namespace Shiny {
   class Interpreter {
     StringInterner interner;
-    TypeInference inference;
     VM vm;
-    std::vector<VariableName> globals;
+
+    TypeEnv inferenceGlobals = {};
+    std::vector<VariableName> compilerGlobals;
 
   public:
-    Interpreter() : inference(interner) {}
+    Interpreter() {}
 
     void run(const std::string& source) {
       try {
@@ -31,12 +32,13 @@ namespace Shiny {
           return;
         }
 
-        inference.performRepl(*ast);
+        TypeInference inference(interner, &inferenceGlobals);
+        inference.perform(*ast);
 
         ASTPrettyPrinter printer(interner);
         printer.print(*ast);
 
-        Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, globals, interner, *ast);
+        Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, compilerGlobals, interner, *ast);
         auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
         Value result = vm.evaluate(rootFunction);
