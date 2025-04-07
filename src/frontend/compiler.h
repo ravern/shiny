@@ -127,14 +127,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
-    visit(*expr.function);
+    auto _functionType = visit(*expr.function);
+    auto functionType = static_cast<FunctionType&>(*_functionType);
+
     for (auto& arg : expr.arguments) {
       visit(*arg);
     }
     emit(Opcode::CALL, static_cast<uint32_t>(expr.arguments.size()));
 
-    auto var = static_cast<VariableExpr*>(expr.function.get());
-    return var->var.type.value();
+    return functionType.ret;
   }
 
   std::shared_ptr<Type> visitBinaryExpr(BinaryExpr& expr) {
