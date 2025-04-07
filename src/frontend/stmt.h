@@ -30,9 +30,9 @@ public:
 
 class BlockStmt : public Stmt {
 public:
-  std::vector<std::shared_ptr<Stmt>> statements;
+  std::vector<std::unique_ptr<Stmt>> statements;
 
-  explicit BlockStmt(std::vector<std::shared_ptr<Stmt>> statements)
+  explicit BlockStmt(std::vector<std::unique_ptr<Stmt>> statements)
     : Stmt(StmtKind::Block),
       statements(std::move(statements)) {}
 
@@ -60,9 +60,9 @@ public:
 class DeclareStmt : public Stmt {
 public:
   Var var;
-  std::shared_ptr<Expr> expression;
+  std::unique_ptr<Expr> expression;
 
-  DeclareStmt(Var  var, std::shared_ptr<Expr> expression)
+  DeclareStmt(Var  var, std::unique_ptr<Expr> expression)
     : Stmt(StmtKind::Declare),
       var(std::move(var)),
       expression(std::move(expression)) {}
@@ -81,9 +81,9 @@ public:
 class AssignStmt : public Stmt {
 public:
   Var var;
-  std::shared_ptr<Expr> expression;
+  std::unique_ptr<Expr> expression;
 
-  AssignStmt(Var  var, std::shared_ptr<Expr> expression)
+  AssignStmt(Var  var, std::unique_ptr<Expr> expression)
     : Stmt(StmtKind::Assign),
       var(std::move(var)),
       expression(std::move(expression)) {}
@@ -104,9 +104,9 @@ public:
   Var name;
   std::vector<Var> params;
   std::shared_ptr<Type> returnType;
-  std::shared_ptr<BlockStmt> body;
+  std::unique_ptr<BlockStmt> body;
 
-  FunctionStmt(Var name, std::vector<Var> params, std::shared_ptr<Type> returnType, std::shared_ptr<BlockStmt> body)
+  FunctionStmt(Var name, std::vector<Var> params, std::shared_ptr<Type> returnType, std::unique_ptr<BlockStmt> body)
     : Stmt(StmtKind::Function),
       name(std::move(name)),
       params(std::move(params)),
@@ -129,9 +129,9 @@ public:
 
 class ExprStmt : public Stmt {
 public:
-  std::shared_ptr<Expr> expression;
+  std::unique_ptr<Expr> expression;
 
-  explicit ExprStmt(std::shared_ptr<Expr> expression)
+  explicit ExprStmt(std::unique_ptr<Expr> expression)
     : Stmt(StmtKind::Expr),
       expression(std::move(expression)) {}
 
@@ -147,9 +147,9 @@ public:
 
 class ReturnStmt : public Stmt {
 public:
-  std::shared_ptr<Expr> expression;
+  std::unique_ptr<Expr> expression;
 
-  explicit ReturnStmt(std::shared_ptr<Expr> expression)
+  explicit ReturnStmt(std::unique_ptr<Expr> expression)
     : Stmt(StmtKind::Return), expression(std::move(expression)) {}
 
   bool operator==(const Stmt& other) const override {
@@ -164,19 +164,19 @@ public:
 
 class IfStmt : public Stmt {
 public:
-  std::shared_ptr<Expr> condition;
-  std::shared_ptr<Stmt> thenBranch;
-  std::optional<std::shared_ptr<Stmt>> elseBranch;
+  std::unique_ptr<Expr> condition;
+  std::unique_ptr<Stmt> thenBranch;
+  std::optional<std::unique_ptr<Stmt>> elseBranch;
 
-  IfStmt(std::shared_ptr<Expr> condition, std::shared_ptr<Stmt> thenBranch)
+  IfStmt(std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> thenBranch)
     : Stmt(StmtKind::If),
       condition(std::move(condition)),
       thenBranch(std::move(thenBranch)),
       elseBranch(std::nullopt) {}
 
-  IfStmt(std::shared_ptr<Expr> condition,
-         std::shared_ptr<Stmt> thenBranch,
-         std::shared_ptr<Stmt> elseBranch)
+  IfStmt(std::unique_ptr<Expr> condition,
+         std::unique_ptr<Stmt> thenBranch,
+         std::unique_ptr<Stmt> elseBranch)
     : Stmt(StmtKind::If),
       condition(std::move(condition)),
       thenBranch(std::move(thenBranch)),

@@ -58,7 +58,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       }
       case FunctionKind::Function: {
         assert(ast.kind == StmtKind::Function);
-        auto functionStmt = static_cast<FunctionStmt&>(ast);
+        auto& functionStmt = static_cast<FunctionStmt&>(ast);
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
         }

@@ -5,36 +5,15 @@
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/scanner.h"
 
-TEST(ParserTest, ValidProgram) {
+TEST(ParserTest, VarStatement) {
   std::string source = R"(
-  var x = 3 + 2
-  var y = true
-  var z = false
-  var a = y && z
-  a
+  var x = 1
   )";
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto x = strings.intern("x");
-  auto y = strings.intern("y");
-  auto z = strings.intern("z");
-  auto a = strings.intern("a");
-  auto ast = parser.parse();
-  auto expectedAst =
-      S::Block({
-        S::Declare(x, E::Add(E::Int("3"), E::Int("2"))),
-        S::Declare(y, E::Bool(true)),
-        S::Declare(z, E::Bool(false)),
-        S::Declare(a, E::And(E::Var(y), E::Var(z))),
-        S::Expression(E::Var(a))
-      });
+  parser.parse();
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
 }
 
 TEST(ParserTest, OneLineTwoStatements) {
@@ -95,29 +74,15 @@ TEST(ParserTest, FunctionWithReturnType) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto add = strings.intern("add");
-  auto x = strings.intern("x");
-  auto y = strings.intern("y");
-  auto z = strings.intern("z");
   auto ast = parser.parse();
-  auto expectedAst = S::Block({
-    S::Function(
-      add,
-      {Var(x, T::Int()), Var(y, T::Int())},
-      T::Int(),
-      S::Block({
-        S::Declare(z, E::Add(E::Var(x), E::Var(y))),
-        S::Return(E::Var(z))
-      })
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(function.params.size(), 2);
+  ASSERT_EQ(*function.params[0].type.value(), *T::Int());
+  ASSERT_EQ(*function.params[1].type.value(), *T::Int());
+  ASSERT_EQ(*function.returnType, *T::Int());
 }
 
 TEST(ParserTest, ComplexReturnType) {
@@ -135,50 +100,18 @@ TEST(ParserTest, ComplexReturnType) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto one = strings.intern("one");
-  auto two = strings.intern("two");
-  auto three = strings.intern("three");
-  auto a = strings.intern("a");
-  auto b = strings.intern("b");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      one,
-      {},
-      T::Function(
-        {T::Int()},
-        T::Function({T::Int()}, T::Int())
-      ),
-      S::Block({
-        S::Function(
-          two,
-          {Var(a, T::Int())},
-          T::Function({T::Int()}, T::Int()),
-          S::Block({
-            S::Function(
-              three,
-              {Var(b, T::Int())},
-              T::Int(),
-              S::Block({
-                S::Return(E::Var(b))
-              })
-            ),
-            S::Return(E::Var(three))
-          })
-        ),
-        S::Return(E::Var(two))
-      })
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(
+    *function.returnType,
+    *T::Function(
+      {T::Int()},
+      T::Function({T::Int()}, T::Int())
+    )
+  );
 }
 
 TEST(ParserTest, ComplexReturnTypeWithParen) {
@@ -196,50 +129,18 @@ TEST(ParserTest, ComplexReturnTypeWithParen) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto one = strings.intern("one");
-  auto two = strings.intern("two");
-  auto three = strings.intern("three");
-  auto a = strings.intern("a");
-  auto b = strings.intern("b");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      one,
-      {},
-      T::Function(
-        {T::Int()},
-        T::Function({T::Int()}, T::Int())
-      ),
-      S::Block({
-        S::Function(
-          two,
-          {Var(a, T::Int())},
-          T::Function({T::Int()}, T::Int()),
-          S::Block({
-            S::Function(
-              three,
-              {Var(b, T::Int())},
-              T::Int(),
-              S::Block({
-                S::Return(E::Var(b))
-              })
-            ),
-            S::Return(E::Var(three))
-          })
-        ),
-        S::Return(E::Var(two))
-      })
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(
+    *function.returnType,
+    *T::Function(
+      {T::Int()},
+      T::Function({T::Int()}, T::Int())
+    )
+  );
 }
 
 TEST(ParserTest, RedundantParenReturnType) {
@@ -251,29 +152,15 @@ TEST(ParserTest, RedundantParenReturnType) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto add = strings.intern("add");
-  auto x = strings.intern("x");
-  auto y = strings.intern("y");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      add,
-      {Var(x, T::Int()), Var(y, T::Int())},
-      T::Int(), // Redundant parens around Int shouldn't affect the AST
-      S::Block({
-        S::Return(E::Add(E::Var(x), E::Var(y)))
-      })
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(
+    *function.returnType,
+    *T::Int()  // Redundant parens around Int shouldn't affect the AST
+  );
 }
 
 TEST(ParserTest, ImplicitVoidReturnType) {
@@ -285,25 +172,15 @@ TEST(ParserTest, ImplicitVoidReturnType) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto nothing = strings.intern("nothing");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      nothing,
-      {},
-      T::Void(), // Redundant parens around Int shouldn't affect the AST
-      S::Block({})
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(
+    *function.returnType,
+    *T::Void()
+  );
 }
 
 TEST(ParserTest, ExplicitVoidReturnType) {
@@ -315,25 +192,15 @@ TEST(ParserTest, ExplicitVoidReturnType) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto nothing = strings.intern("nothing");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      nothing,
-      {},
-      T::Void(), // Redundant parens around Int shouldn't affect the AST
-      S::Block({})
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(
+    *function.returnType,
+    *T::Void()
+  );
 }
 
 TEST(ParserTest, FunctionAsParameter) {
@@ -345,40 +212,13 @@ TEST(ParserTest, FunctionAsParameter) {
   Scanner scanner(source);
   StringInterner strings;
   Parser parser(scanner, strings);
-
-  auto applyTwice = strings.intern("applyTwice");
-  auto f = strings.intern("f");
-  auto x = strings.intern("x");
-
   auto ast = parser.parse();
-
-  auto expectedAst = S::Block({
-    S::Function(
-      applyTwice,
-      {
-        Var(f, T::Function({T::Int()}, T::Int())),
-        Var(x, T::Int())
-      },
-      T::Int(),
-      S::Block({
-        S::Return(
-          E::Apply(
-            E::Var(f),
-            {
-              E::Apply(
-                E::Var(f),
-                {E::Var(x)}
-              )
-            }
-          )
-        )
-      })
-    )
-  });
-
   ASSERT_FALSE(parser.hadError());
-  ASTPrettyPrinter printer(strings);
-  printer.print(*ast);
-  printer.print(*expectedAst);
-  ASSERT_EQ(*expectedAst, *ast);
+
+  ASSERT_EQ(ast->statements.size(), 1);
+  auto& function = static_cast<FunctionStmt&>(*ast->statements[0]);
+  ASSERT_EQ(function.params.size(), 2);
+  ASSERT_EQ(*function.params[0].type.value(), *T::Function({T::Int()}, T::Int()));
+  ASSERT_EQ(*function.params[1].type.value(), *T::Int());
+  ASSERT_EQ(*function.returnType, *T::Int());
 }

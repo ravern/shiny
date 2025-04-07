@@ -110,10 +110,10 @@ public:
 
 class ApplyExpr : public Expr {
 public:
-  std::shared_ptr<Expr> function;
-  std::vector<std::shared_ptr<Expr>> arguments;
+  std::unique_ptr<Expr> function;
+  std::vector<std::unique_ptr<Expr>> arguments;
 
-  ApplyExpr(std::shared_ptr<Expr> function, std::vector<std::shared_ptr<Expr>> arguments)
+  ApplyExpr(std::unique_ptr<Expr> function, std::vector<std::unique_ptr<Expr>> arguments)
     : Expr(ExprKind::Apply),
       function(std::move(function)),
       arguments(std::move(arguments)) {
@@ -160,11 +160,11 @@ inline std::string toString(BinaryOperator op) {
 
 class BinaryExpr : public Expr {
 public:
-  std::shared_ptr<Expr> left;
+  std::unique_ptr<Expr> left;
   BinaryOperator op;
-  std::shared_ptr<Expr> right;
+  std::unique_ptr<Expr> right;
 
-  BinaryExpr(std::shared_ptr<Expr> left, BinaryOperator op, std::shared_ptr<Expr> right)
+  BinaryExpr(std::unique_ptr<Expr> left, BinaryOperator op, std::unique_ptr<Expr> right)
     : Expr(ExprKind::Binary),
       left(std::move(left)),
       op(op),
@@ -200,9 +200,9 @@ inline std::string toString(UnaryOperator op) {
 class UnaryExpr : public Expr {
 public:
   UnaryOperator op;
-  std::shared_ptr<Expr> operand;
+  std::unique_ptr<Expr> operand;
 
-  UnaryExpr(UnaryOperator op, std::shared_ptr<Expr> operand)
+  UnaryExpr(UnaryOperator op, std::unique_ptr<Expr> operand)
     : Expr(ExprKind::Unary),
       op(op),
       operand(std::move(operand)) {

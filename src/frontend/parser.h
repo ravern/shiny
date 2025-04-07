@@ -1,6 +1,5 @@
 #ifndef PARSER_H
 #define PARSER_H
-#include <utility>
 
 #include "factory.h"
 #include "scanner.h"
@@ -59,7 +58,7 @@ class Parser {
   explicit Parser(Scanner& scanner, StringInterner& strings)
       : scanner(scanner), strings(strings) {}
 
-  std::shared_ptr<BlockStmt> parse() {
+  std::unique_ptr<BlockStmt> parse() {
     advance();
     return program();
   }
@@ -69,25 +68,25 @@ class Parser {
   }
 
  private:
-  std::shared_ptr<BlockStmt> program() {
-    std::vector<std::shared_ptr<Stmt>> statements;
+  std::unique_ptr<BlockStmt> program() {
+    std::vector<std::unique_ptr<Stmt>> statements;
     while (current.type != TOKEN_EOF) {
       statements.push_back(statement());
     }
-    return S::Block(statements);
+    return S::Block(std::move(statements));
   }
 
-  std::shared_ptr<BlockStmt> block() {
+  std::unique_ptr<BlockStmt> block() {
     consume(TOKEN_LEFT_BRACE, "Expected '{'");
-    std::vector<std::shared_ptr<Stmt>> statements;
+    std::vector<std::unique_ptr<Stmt>> statements;
     while (current.type != TOKEN_RIGHT_BRACE && current.type != TOKEN_EOF) {
       statements.push_back(statement());
     }
     consume(TOKEN_RIGHT_BRACE, "Expected '}'");
-    return S::Block(statements);
+    return S::Block(std::move(statements));
   }
 
-  std::shared_ptr<Stmt> statement() {
+  std::unique_ptr<Stmt> statement() {
     try {
       if (!current.isAtStartOfLine) {
         throw errorAtCurrent("Statement must begin on a new line");
@@ -108,21 +107,21 @@ class Parser {
     }
   }
 
-  std::shared_ptr<Stmt> declareStatement() {
+  std::unique_ptr<Stmt> declareStatement() {
     auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
     consume(TOKEN_EQUAL, "Expected '='");
     auto expr = expression();
 
     auto symbol = strings.intern(std::string(identifier.lexeme));
-    return S::Declare(symbol, expr);
+    return S::Declare(symbol, std::move(expr));
   }
 
-  std::shared_ptr<Stmt> returnStatement() {
+  std::unique_ptr<Stmt> returnStatement() {
     auto expr = expression();
-    return S::Return(expr);
+    return S::Return(std::move(expr));
   }
 
-  std::shared_ptr<Stmt> functionStatement() {
+  std::unique_ptr<Stmt> functionStatement() {
     auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
     auto symbol = strings.intern(std::string(identifier.lexeme));
     consume(TOKEN_LEFT_PAREN, "Expected '('");
@@ -147,39 +146,39 @@ class Parser {
 
     auto body = block();
 
-    return S::Function(symbol, params, returnType, body);
+    return S::Function(symbol, params, returnType, std::move(body));
   }
 
-  std::shared_ptr<Stmt> expressionStatement() {
+  std::unique_ptr<Stmt> expressionStatement() {
     auto expr = expression();
-    return S::Expression(expr);
+    return S::Expression(std::move(expr));
   }
 
-  std::shared_ptr<Expr> expression() { return logicalOr(); }
+  std::unique_ptr<Expr> expression() { return logicalOr(); }
 
-  std::shared_ptr<Expr> logicalOr() {
+  std::unique_ptr<Expr> logicalOr() {
     auto expr = logicalAnd();
     while (match(TOKEN_OR)) {
       auto rhs = factor();
-      expr = E::Binary(expr, BinaryOperator::Or, rhs);
+      expr = E::Binary(std::move(expr), BinaryOperator::Or, std::move(rhs));
     }
     return expr;
   }
 
-  std::shared_ptr<Expr> logicalAnd() {
+  std::unique_ptr<Expr> logicalAnd() {
     auto expr = equality();
     while (match(TOKEN_AND)) {
       auto rhs = factor();
-      expr = E::Binary(expr, BinaryOperator::And, rhs);
+      expr = E::Binary(std::move(expr), BinaryOperator::And, std::move(rhs));
     }
     return expr;
   }
 
-  std::shared_ptr<Expr> equality() { return comparison(); }
+  std::unique_ptr<Expr> equality() { return comparison(); }
 
-  std::shared_ptr<Expr> comparison() { return term(); }
+  std::unique_ptr<Expr> comparison() { return term(); }
 
-  std::shared_ptr<Expr> term() {
+  std::unique_ptr<Expr> term() {
     auto expr = factor();
     while (match(TOKEN_PLUS) || match(TOKEN_MINUS)) {
       BinaryOperator op =
@@ -187,30 +186,30 @@ class Parser {
         : previous.type == TOKEN_MINUS ? BinaryOperator::Minus
         : throw std::runtime_error("Unexpected token type");
       auto rhs = factor();
-      expr = E::Binary(expr, op, rhs);
+      expr = E::Binary(std::move(expr), op, std::move(rhs));
     }
     return expr;
   }
 
-  std::shared_ptr<Expr> factor() { return unary(); }
+  std::unique_ptr<Expr> factor() { return unary(); }
 
-  std::shared_ptr<Expr> unary() {
+  std::unique_ptr<Expr> unary() {
     if (match(TOKEN_BANG) || match(TOKEN_MINUS)) {
       UnaryOperator op =
           previous.type == TOKEN_BANG ? UnaryOperator::Not
         : previous.type == TOKEN_MINUS ? UnaryOperator::Negate
         : throw std::runtime_error("Unexpected token type");
       auto rhs = unary();
-      return E::Unary(op, rhs);
+      return E::Unary(op, std::move(rhs));
     }
     return call();
   }
 
-  std::shared_ptr<Expr> call() {
+  std::unique_ptr<Expr> call() {
     auto expr = primary();
     while (true) {
       if (match(TOKEN_LEFT_PAREN)) {
-        expr = finishCall(expr);
+        expr = finishCall(std::move(expr));
       } else {
         break;
       }
@@ -218,8 +217,8 @@ class Parser {
     return expr;
   }
 
-  std::shared_ptr<Expr> finishCall(std::shared_ptr<Expr> callee) {
-    std::vector<std::shared_ptr<Expr>> args;
+  std::unique_ptr<Expr> finishCall(std::unique_ptr<Expr> callee) {
+    std::vector<std::unique_ptr<Expr>> args;
     if (!check(TOKEN_RIGHT_PAREN)) {
       do {
         if (args.size() == 255) {
@@ -229,10 +228,10 @@ class Parser {
       } while (match(TOKEN_COMMA));
     }
     consume(TOKEN_RIGHT_PAREN, "Expected ')'");
-    return E::Apply(std::move(callee), args);
+    return E::Apply(std::move(callee), std::move(args));
   }
 
-  std::shared_ptr<Expr> primary() {
+  std::unique_ptr<Expr> primary() {
     if (match(TOKEN_INT)) {
       return E::Int(previous.lexeme);
     }
