@@ -11,6 +11,8 @@ class ASTVisitor {
 public:
   ExprRetTy visit(Expr& expr, Args... args) {
     switch (expr.kind) {
+      case ExprKind::Void:
+        return static_cast<ImplClass*>(this)->visitVoidExpr(static_cast<IntegerExpr&>(expr), std::forward<Args>(args)...);
       case ExprKind::Integer:
         return static_cast<ImplClass*>(this)->visitIntegerExpr(static_cast<IntegerExpr&>(expr), std::forward<Args>(args)...);
       case ExprKind::Double:

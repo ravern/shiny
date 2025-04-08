@@ -120,8 +120,15 @@ class Parser {
   }
 
   std::unique_ptr<Stmt> returnStatement() {
+    // since we only have one token lookahead and no semicolons,
+    // checking that the next token is on a new line is the easiest and only
+    // way I can think of to detect an implicit Void return
+    if (current.isAtStartOfLine) {
+      auto expr = std::make_unique<VoidExpr>();
+      return std::make_unique<ReturnStmt>(std::move(expr));
+    }
     auto expr = expression();
-    return S::Return(std::move(expr));
+    return std::make_unique<ReturnStmt>(std::move(expr));
   }
 
   std::unique_ptr<Stmt> functionStatement() {

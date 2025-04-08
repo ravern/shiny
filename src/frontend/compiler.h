@@ -86,6 +86,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   // Expression visitors
+  std::shared_ptr<Type> visitVoidExpr(IntegerExpr& expr) {
+    emit(Opcode::NIL);
+    return T::Void();
+  }
+
   std::shared_ptr<Type> visitIntegerExpr(IntegerExpr& expr) {
     int64_t value = expr.getValue();
     uint32_t constantIndex = addConstant(value);

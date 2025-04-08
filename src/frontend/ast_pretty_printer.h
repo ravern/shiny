@@ -27,6 +27,11 @@ public:
   }
 
   // Expression visitors
+  void visitVoidExpr(IntegerExpr& expr) {
+    printPrefix();
+    std::cout << "Void " << std::endl;
+  }
+
   void visitIntegerExpr(IntegerExpr& expr) {
     printPrefix();
     std::cout << "Integer " << expr.getValue() << std::endl;

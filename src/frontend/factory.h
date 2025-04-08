@@ -123,11 +123,6 @@ namespace S {
   inline std::unique_ptr<ExprStmt> Expression(std::unique_ptr<Expr> value) {
     return std::make_unique<ExprStmt>(std::move(value));
   }
-
-  // Return statement
-  inline std::unique_ptr<ReturnStmt> Return(std::unique_ptr<Expr> value) {
-    return std::make_unique<ReturnStmt>(std::move(value));
-  }
 } // namespace S
 
 // Factory functions for types

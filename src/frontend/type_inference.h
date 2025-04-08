@@ -110,6 +110,7 @@ private:
 
   void substituteAst(Expr& expr) {
     switch (expr.kind) {
+      case ExprKind::Void:
       case ExprKind::Integer:
       case ExprKind::Double:
       case ExprKind::Boolean: {
@@ -338,6 +339,9 @@ private:
     Expr& expr
   ) {
     switch (expr.kind) {
+      case ExprKind::Void: {
+        return T::Void();
+      }
       case ExprKind::Integer: {
         return T::Int();
       }
@@ -565,6 +569,10 @@ private:
     Expr& expr,
     const std::shared_ptr<Type>& type
   ) {
+    if (expr.kind == ExprKind::Void && type->kind == TypeKind::Void) {
+      return;
+    }
+
     if (expr.kind == ExprKind::Integer && type->kind == TypeKind::Integer) {
       return;
     }

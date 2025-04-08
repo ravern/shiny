@@ -7,6 +7,7 @@
 #include "var.h"
 
 enum class ExprKind {
+  Void,
   Integer,
   Double,
   Boolean,
@@ -28,6 +29,15 @@ public:
   }
 
   bool operator!=(const Expr& other) const = default;
+};
+
+class VoidExpr : public Expr {
+public:
+  VoidExpr() : Expr(ExprKind::Void) {}
+
+  bool operator==(const Expr& other) const override {
+    return kind == other.kind;
+  }
 };
 
 class IntegerExpr : public Expr {
