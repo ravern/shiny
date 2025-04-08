@@ -100,6 +100,9 @@ class Parser {
       if (match(TOKEN_FUNC)) {
         return functionStatement();
       }
+      if (match(TOKEN_IF)) {
+        return ifStatement();
+      }
       return expressionStatement();
     } catch (const ParseError& e) {
       synchronize();
@@ -147,6 +150,24 @@ class Parser {
     auto body = block();
 
     return S::Function(symbol, params, returnType, std::move(body));
+  }
+
+  std::unique_ptr<Stmt> ifStatement() {
+    auto condition = expression();
+    auto thenBranch = block();
+
+    std::optional<std::unique_ptr<Stmt>> elseBranch = std::nullopt;
+    if (match(TOKEN_ELSE)) {
+      if (match(TOKEN_IF)) {
+        elseBranch = ifStatement();
+      } else {
+        elseBranch = block();
+      }
+    }
+
+    auto stmt = std::make_unique<IfStmt>(
+        std::move(condition), std::move(thenBranch), std::move(elseBranch));
+    return stmt;
   }
 
   std::unique_ptr<Stmt> expressionStatement() {

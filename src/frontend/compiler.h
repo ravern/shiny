@@ -262,8 +262,33 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     emit(Opcode::RETURN);
   }
 
-  void visitIfStmt(IfStmt& stmt) {}
+  void visitIfStmt(IfStmt& stmt) {
+    visit(*stmt.condition);
+    emit(Opcode::TEST);
 
+    size_t jumpToElseOffsetIndex = function.getChunk().instructions.size();
+    emit(Opcode::JUMP, 0);  // will be patched later
+
+    visit(*stmt.thenBranch);
+
+    size_t jumpToEndOffsetIndex = -1;
+    if (stmt.elseBranch.has_value()) {
+      jumpToEndOffsetIndex = function.getChunk().instructions.size();
+      emit(Opcode::JUMP, 0);  // will be patched later
+    }
+
+    size_t elseStart = function.getChunk().instructions.size();
+    patchJump(jumpToElseOffsetIndex, elseStart);
+
+    if (stmt.elseBranch.has_value()) {
+      visit(*stmt.elseBranch.value());
+
+      size_t end = function.getChunk().instructions.size();
+      patchJump(jumpToEndOffsetIndex, end);
+    }
+  }
+
+ private:
   int resolveLocal(VariableName name) {
     for (int i = locals.size() - 1; i >= 0; i--) {
       auto& local = locals.at(i);
@@ -271,7 +296,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         if (local.depth == -1) {
           throw std::runtime_error(
               "Circular reference");  // this should never happen; caught by
-                                      // TypeInference
+          // TypeInference
         }
         return i;
       }
@@ -294,7 +319,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     return -1;
   }
 
- private:
   void beginScope() { scopeDepth++; }
 
   void endScope() {
@@ -400,6 +424,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   void emit(Opcode opcode, uint32_t operand = 0) {
+    assertFits24BitOperand(operand);
     uint32_t instruction = static_cast<uint32_t>(opcode) | (operand << 8);
     function.getChunk().instructions.push_back(instruction);
   }
@@ -409,6 +434,21 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
                       : type->kind == TypeKind::Double ? 2
                       : throw std::runtime_error("Unexpected TypeKind");
     emit(opcode, opType);
+  }
+
+  void patchJump(size_t jumpIndex, size_t targetIndex) {
+    assertFits24BitOperand(targetIndex);
+    uint32_t& instruction = function.getChunk().instructions[jumpIndex];
+    uint32_t opcode = instruction & 0xFF;
+    uint32_t offset = static_cast<uint32_t>(targetIndex);
+    instruction = opcode | (offset << 8);
+  }
+
+  void assertFits24BitOperand(uint32_t operand) {
+    constexpr uint32_t MAX_OPERAND = 0xFFFFFF;
+    if (operand > MAX_OPERAND) {
+      throw std::runtime_error("Operand exceeds 24-bit limit");
+    }
   }
 };
 #endif  // COMPILER_H

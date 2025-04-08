@@ -176,7 +176,7 @@ public:
 
   IfStmt(std::unique_ptr<Expr> condition,
          std::unique_ptr<Stmt> thenBranch,
-         std::unique_ptr<Stmt> elseBranch)
+         std::optional<std::unique_ptr<Stmt>> elseBranch)
     : Stmt(StmtKind::If),
       condition(std::move(condition)),
       thenBranch(std::move(thenBranch)),

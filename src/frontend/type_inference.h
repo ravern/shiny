@@ -528,6 +528,9 @@ private:
       }
       case StmtKind::Return: {
         auto& returnStmt = static_cast<ReturnStmt&>(stmt);
+        if (enclosingFunction == nullptr) {
+          throw SyntaxError("Return invalid outside of a function");
+        }
         check(*returnStmt.expression, enclosingFunction->returnType);
         return false;
       }

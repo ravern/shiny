@@ -110,14 +110,6 @@ namespace S {
     return std::make_unique<AssignStmt>(::Var(name), std::move(value));
   }
 
-  // If statement
-  inline std::unique_ptr<IfStmt> If(std::unique_ptr<Expr> condition,
-                                    std::unique_ptr<Stmt> thenBranch,
-                                    std::unique_ptr<Stmt> elseBranch) {
-    return std::make_unique<IfStmt>(std::move(condition), std::move(thenBranch),
-                                    std::move(elseBranch));
-  }
-
   // Function statement
   inline std::unique_ptr<FunctionStmt> Function(VariableName name,
                                                 std::vector<::Var> params,
