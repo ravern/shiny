@@ -10,6 +10,10 @@
 // Factory functions for expressions
 namespace E {
   // Literal expressions
+  inline std::unique_ptr<VoidExpr> Void() {
+    return std::make_unique<VoidExpr>();
+  }
+
   inline std::unique_ptr<IntegerExpr> Int(std::string_view literal) {
     return std::make_unique<IntegerExpr>(literal);
   }

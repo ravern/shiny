@@ -124,7 +124,7 @@ class Parser {
     // checking that the next token is on a new line is the easiest and only
     // way I can think of to detect an implicit Void return
     if (current.isAtStartOfLine) {
-      auto expr = std::make_unique<VoidExpr>();
+      auto expr = E::Void();
       return std::make_unique<ReturnStmt>(std::move(expr));
     }
     auto expr = expression();
@@ -315,6 +315,9 @@ class Parser {
       return E::Var(symbol);
     }
     if (match(TOKEN_LEFT_PAREN)) {
+      if (match(TOKEN_RIGHT_PAREN)) {
+        return E::Void();
+      }
       auto expr = expression();
       consume(TOKEN_RIGHT_PAREN, "Expected ')'");
       return expr;
