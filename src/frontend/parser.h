@@ -174,9 +174,34 @@ class Parser {
     return expr;
   }
 
-  std::unique_ptr<Expr> equality() { return comparison(); }
+  std::unique_ptr<Expr> equality() {
+    auto expr = comparison();
+    while (match(TOKEN_EQUAL_EQUAL) || match(TOKEN_BANG_EQUAL)) {
+      BinaryOperator op =
+          previous.type == TOKEN_EQUAL_EQUAL ? BinaryOperator::Eq
+        : previous.type == TOKEN_BANG_EQUAL ? BinaryOperator::Neq
+        : throw std::runtime_error("Unexpected TokenType");
+      auto rhs = comparison();
+      expr = E::Binary(std::move(expr), op, std::move(rhs));
+    }
+    return expr;
+  }
 
-  std::unique_ptr<Expr> comparison() { return term(); }
+  std::unique_ptr<Expr> comparison() {
+    auto expr = term();
+    while (match(TOKEN_LESS) || match(TOKEN_LESS_EQUAL) ||
+           match(TOKEN_GREATER) || match(TOKEN_GREATER_EQUAL)) {
+      BinaryOperator op =
+          previous.type == TOKEN_LESS          ? BinaryOperator::Lt
+        : previous.type == TOKEN_LESS_EQUAL    ? BinaryOperator::Lte
+        : previous.type == TOKEN_GREATER       ? BinaryOperator::Gt
+        : previous.type == TOKEN_GREATER_EQUAL ? BinaryOperator::Gte
+        : throw std::runtime_error("Unexpected TokenType");
+      auto rhs = term();
+      expr = E::Binary(std::move(expr), op, std::move(rhs));
+    }
+    return expr;
+  }
 
   std::unique_ptr<Expr> term() {
     auto expr = factor();
@@ -184,7 +209,7 @@ class Parser {
       BinaryOperator op =
           previous.type == TOKEN_PLUS ? BinaryOperator::Add
         : previous.type == TOKEN_MINUS ? BinaryOperator::Minus
-        : throw std::runtime_error("Unexpected token type");
+        : throw std::runtime_error("Unexpected TokenType");
       auto rhs = factor();
       expr = E::Binary(std::move(expr), op, std::move(rhs));
     }
@@ -198,7 +223,7 @@ class Parser {
           previous.type == TOKEN_STAR    ? BinaryOperator::Multiply
         : previous.type == TOKEN_SLASH   ? BinaryOperator::Divide
         : previous.type == TOKEN_PERCENT ? BinaryOperator::Modulo
-        : throw std::runtime_error("Unexpected token type");
+        : throw std::runtime_error("Unexpected TokenType");
 
       auto rhs = unary();
       expr = E::Binary(std::move(expr), op, std::move(rhs));
@@ -211,7 +236,7 @@ class Parser {
       UnaryOperator op =
           previous.type == TOKEN_BANG ? UnaryOperator::Not
         : previous.type == TOKEN_MINUS ? UnaryOperator::Negate
-        : throw std::runtime_error("Unexpected token type");
+        : throw std::runtime_error("Unexpected TokenType");
       auto rhs = unary();
       return E::Unary(op, std::move(rhs));
     }

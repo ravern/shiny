@@ -144,22 +144,17 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     switch (expr.op) {
       case BinaryOperator::Add:
-      case BinaryOperator::Minus:
-      case BinaryOperator::Multiply:
-      case BinaryOperator::Divide: {
-        Opcode op =
-            expr.op == BinaryOperator::Add       ? Opcode::ADD
-          : expr.op == BinaryOperator::Minus     ? Opcode::SUB
-          : expr.op == BinaryOperator::Multiply  ? Opcode::MUL
-          : expr.op == BinaryOperator::Divide    ? Opcode::DIV
-          : throw std::runtime_error("Unexpected BinaryOperator");
-        uint32_t opType = lhsType->kind == TypeKind::Integer ? 1
-                          : lhsType->kind == TypeKind::Double
-                              ? 2
-                              : throw std::runtime_error("Unexpected TypeKind");
-        emit(op, opType);
+        emit(Opcode::ADD, lhsType);
         return lhsType;
-      }
+      case BinaryOperator::Minus:
+        emit(Opcode::SUB, lhsType);
+        return lhsType;
+      case BinaryOperator::Multiply:
+        emit(Opcode::MUL, lhsType);
+        return lhsType;
+      case BinaryOperator::Divide:
+        emit(Opcode::DIV, lhsType);
+        return lhsType;
       case BinaryOperator::Modulo:
         emit(Opcode::MOD);
         return lhsType;
@@ -169,6 +164,24 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       case BinaryOperator::Or:
         emit(Opcode::OR);
         return lhsType;
+      case BinaryOperator::Eq:
+        emit(Opcode::EQ);
+        return T::Bool();
+      case BinaryOperator::Neq:
+        emit(Opcode::NEQ);
+        return T::Bool();
+      case BinaryOperator::Lt:
+        emit(Opcode::LT, lhsType);
+        return T::Bool();
+      case BinaryOperator::Lte:
+        emit(Opcode::LTE, lhsType);
+        return T::Bool();
+      case BinaryOperator::Gt:
+        emit(Opcode::GT, lhsType);
+        return T::Bool();
+      case BinaryOperator::Gte:
+        emit(Opcode::GTE, lhsType);
+        return T::Bool();
       default:
         throw std::runtime_error("Unknown BinaryOperator");
     }
@@ -389,6 +402,13 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   void emit(Opcode opcode, uint32_t operand = 0) {
     uint32_t instruction = static_cast<uint32_t>(opcode) | (operand << 8);
     function.getChunk().instructions.push_back(instruction);
+  }
+
+  void emit(Opcode opcode, const std::shared_ptr<Type>& type) {
+    uint32_t opType = type->kind == TypeKind::Integer ? 1
+                      : type->kind == TypeKind::Double ? 2
+                      : throw std::runtime_error("Unexpected TypeKind");
+    emit(opcode, opType);
   }
 };
 #endif  // COMPILER_H

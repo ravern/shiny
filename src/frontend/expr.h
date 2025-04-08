@@ -149,6 +149,12 @@ enum class BinaryOperator {
   Modulo,
   And,
   Or,
+  Eq,
+  Neq,
+  Lt,
+  Lte,
+  Gt,
+  Gte
 };
 
 inline std::string toString(BinaryOperator op) {
@@ -160,6 +166,12 @@ inline std::string toString(BinaryOperator op) {
     case BinaryOperator::Modulo: return "%";
     case BinaryOperator::And: return "&&";
     case BinaryOperator::Or: return "||";
+    case BinaryOperator::Eq: return "==";
+    case BinaryOperator::Neq: return "!=";
+    case BinaryOperator::Lt: return "<";
+    case BinaryOperator::Lte: return "<=";
+    case BinaryOperator::Gt: return ">";
+    case BinaryOperator::Gte: return ">=";
     default: return "Unknown BinaryOperator";
   }
 }

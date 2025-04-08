@@ -397,6 +397,31 @@ private:
               return leftType;
             }
             throw TypeError("Invalid binary operand types");
+          case BinaryOperator::Lt:
+          case BinaryOperator::Lte:
+          case BinaryOperator::Gt:
+          case BinaryOperator::Gte: {
+            if (leftType->kind == TypeKind::Integer && rightType->kind == TypeKind::Integer) {
+              return T::Bool();
+            }
+            if (leftType->kind == TypeKind::Double && rightType->kind == TypeKind::Double) {
+              return T::Bool();
+            }
+            throw TypeError("Invalid binary operand types");
+          }
+          case BinaryOperator::Eq:
+          case BinaryOperator::Neq: {
+            if (leftType->kind == TypeKind::Integer && rightType->kind == TypeKind::Integer) {
+              return T::Bool();
+            }
+            if (leftType->kind == TypeKind::Double && rightType->kind == TypeKind::Double) {
+              return T::Bool();
+            }
+            if (leftType->kind == TypeKind::Boolean && rightType->kind == TypeKind::Boolean) {
+              return T::Bool();
+            }
+            throw TypeError("Invalid binary operand types");
+          }
           default:
             throw std::runtime_error("Unknown BinaryOperator");
         }
