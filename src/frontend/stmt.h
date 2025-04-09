@@ -79,6 +79,7 @@ public:
   }
 };
 
+// TODO: remove this
 class AssignStmt : public Stmt {
 public:
   Var var;

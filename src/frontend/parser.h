@@ -215,7 +215,26 @@ class Parser {
     return S::Expression(std::move(expr));
   }
 
-  std::unique_ptr<Expr> expression() { return logicalOr(); }
+  std::unique_ptr<Expr> expression() { return assignment(); }
+
+  std::unique_ptr<Expr> assignment() {
+    auto expr = logicalOr();
+
+    if (match(TOKEN_EQUAL)) {
+      auto value = assignment();
+      if (expr->kind == ExprKind::Variable) {
+        auto& varExpr = static_cast<const VariableExpr&>(*expr);
+        return std::make_unique<AssignExpr>(varExpr.var, std::move(value));
+      } else if (expr->kind == ExprKind::Get) {
+        auto& getExpr = static_cast<GetExpr&>(*expr);
+        return std::make_unique<SetExpr>(std::move(getExpr.obj), getExpr.name, std::move(value));
+      } else {
+        throw errorAtCurrent("Invalid assignment target.");
+      }
+    }
+
+    return expr;
+  }
 
   std::unique_ptr<Expr> logicalOr() {
     auto expr = logicalAnd();

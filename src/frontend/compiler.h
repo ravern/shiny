@@ -216,6 +216,18 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
   }
 
+  std::shared_ptr<Type> visitAssignExpr(AssignExpr& expr) {
+
+  }
+
+  std::shared_ptr<Type> visitGetExpr(GetExpr& expr) {
+
+  }
+
+  std::shared_ptr<Type> visitSetExpr(SetExpr& expr) {
+
+  }
+
   // Statement visitors
   void visitBlockStmt(BlockStmt& stmt) {
     for (auto& statement : stmt.statements) {
@@ -268,8 +280,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declare(name);
     define(name);
     emit(Opcode::CLASS); // need some kinda index?
-
-
   }
 
   void visitExprStmt(ExprStmt& stmt) {
