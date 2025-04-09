@@ -264,7 +264,12 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   void visitClassStmt(ClassStmt& stmt) {
-    assert(false);
+    auto name = stmt.name.name;
+    declare(name);
+    define(name);
+    emit(Opcode::CLASS); // need some kinda index?
+
+
   }
 
   void visitExprStmt(ExprStmt& stmt) {

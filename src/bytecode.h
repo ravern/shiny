@@ -21,6 +21,7 @@ enum class Opcode : uint8_t {
   CONST = 0x16,     // operand: index of constant
   CLOSURE = 0x17,   // operand: index of function definition
   BUILT_IN = 0x18,  // operand: index of built-in function
+  CLASS = 0x19,
 
   ADD = 0x31,  // operand: type of operands
   SUB = 0x32,  // operand: type of operands

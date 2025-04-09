@@ -15,6 +15,15 @@ struct Upvalue {
   bool isLocal;
 };
 
+class ClassObject {
+
+};
+
+class InstanceObject {
+ ClassObject& klass;
+ std::vector<Value> fields;
+};
+
 class FunctionObject {
  public:
   FunctionObject(std::optional<SymbolId> name = std::nullopt);
