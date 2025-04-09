@@ -245,4 +245,43 @@ public:
   }
 };
 
+class GetExpr : public Expr {
+public:
+  std::unique_ptr<Expr> obj;
+  Var name;
+
+  explicit GetExpr(std::unique_ptr<Expr> obj, Var var)
+    : Expr(ExprKind::Variable),
+      obj(std::move(obj)), name(std::move(var)) {
+  }
+
+  bool operator==(const Expr& other) const override {
+    if (kind != other.kind) {
+      return false;
+    }
+    const auto& otherGet = static_cast<const GetExpr&>(other);
+    return *obj == *otherGet.obj && name == otherGet.name;
+  }
+};
+
+class SetExpr : public Expr {
+public:
+  std::unique_ptr<Expr> obj;
+  Var var;
+  std::unique_ptr<Expr> value;
+
+  explicit SetExpr(std::unique_ptr<Expr> obj, Var var, std::unique_ptr<Expr> value)
+    : Expr(ExprKind::Variable),
+      obj(std::move(obj)), var(std::move(var)), value(std::move(value)) {
+  }
+
+  bool operator==(const Expr& other) const override {
+    if (kind != other.kind) {
+      return false;
+    }
+    const auto& otherSet = static_cast<const SetExpr&>(other);
+    return *obj == *otherSet.obj && var == otherSet.var && *value == *otherSet.value;
+  }
+};
+
 #endif //EXPR_H

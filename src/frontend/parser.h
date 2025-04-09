@@ -309,6 +309,10 @@ class Parser {
     while (true) {
       if (match(TOKEN_LEFT_PAREN)) {
         expr = finishCall(std::move(expr));
+      } else if (match(TOKEN_DOT)) {
+        auto identifier = consume(TOKEN_IDENTIFIER, "Expected property name after '.'");
+        auto name = Var(strings.intern(std::string(identifier.lexeme)));
+        expr = std::make_unique<GetExpr>(std::move(expr), name);
       } else {
         break;
       }
