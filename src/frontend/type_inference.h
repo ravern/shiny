@@ -359,22 +359,36 @@ private:
       }
       case ExprKind::Apply: {
         auto& applyExpr = static_cast<ApplyExpr&>(expr);
+        auto function = infer(*applyExpr.function);
+        // I'm pretty sure infer() will resolve to a concrete function type...
+        assert(function->kind == TypeKind::Function);
+        auto& functionType = static_cast<FunctionType&>(*function);
 
-        std::vector<std::shared_ptr<Type>> argumentTypes;
-        for (auto& arg : applyExpr.arguments) {
-          auto argType = infer(*arg);
-          argumentTypes.push_back(argType);
+        if (applyExpr.arguments.size() != functionType.parameters.size()) {
+          throw TypeError("Invalid arguments count");
         }
-        auto returnType = T::Var(freshTypeVar());
-        auto expectedFunctionType = T::Function(argumentTypes, returnType);
+        for (unsigned int i = 0; i < applyExpr.arguments.size(); i++) {
+          auto& arg = applyExpr.arguments[i];
+          auto argType = infer(*arg);
+          auto& paramType = functionType.parameters[i];
+          assert(argType->kind != TypeKind::Variable);
+          assert(paramType->kind != TypeKind::Variable);
+          if (*argType != *paramType) {
+            throw TypeError("Invalid argument type");
+          }
+        }
 
-        check(*applyExpr.function, expectedFunctionType);
-        return returnType;
+        return functionType.ret;
       }
       case ExprKind::Binary: {
         auto& binaryExpr = static_cast<BinaryExpr&>(expr);
         auto leftType = infer(*binaryExpr.left);
         auto rightType = infer(*binaryExpr.right);
+        // infer should always return a concrete type
+        // at this point we can just check the types instead of deferring it
+        // to check()
+        assert(leftType->kind != TypeKind::Variable);
+        assert(rightType->kind != TypeKind::Variable);
         switch (binaryExpr.op) {
           case BinaryOperator::Add:
           case BinaryOperator::Minus:
