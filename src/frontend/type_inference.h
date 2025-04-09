@@ -181,6 +181,16 @@ private:
         substituteAst(*funStmt.body);
         break;
       }
+      case StmtKind::Class: {
+        auto& classStmt = static_cast<ClassStmt&>(stmt);
+        for (auto& decl : classStmt.declarations) {
+          substituteAst(*decl);
+        }
+        for (auto& method : classStmt.methods) {
+          substituteAst(*method);
+        }
+        break;
+      }
       case StmtKind::Return: {
         auto& returnStmt = static_cast<ReturnStmt&>(stmt);
         substituteAst(*returnStmt.expression);
@@ -538,6 +548,21 @@ private:
         enclosingFunction = prevEnclosingFunction;
 
         return false;
+      }
+      case StmtKind::Class: {
+        auto& classStmt = static_cast<ClassStmt&>(stmt);
+        declare(classStmt.name);
+        beginScope();
+        // TODO: hold off on declaring until all declarations are defined so
+        // they don't reference each other
+        for (auto& decl : classStmt.declarations) {
+          infer(*decl);
+        }
+        for (auto& method : classStmt.methods) {
+          infer(*method);
+        }
+        endScope();
+        return true;
       }
       case StmtKind::Expr: {
         auto& exprStmt = static_cast<ExprStmt&>(stmt);
