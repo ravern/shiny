@@ -1,3 +1,5 @@
+var double = 0
+
 class Foo {
     var integer = 0
     var double = 1.0
