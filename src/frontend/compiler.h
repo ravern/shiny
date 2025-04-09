@@ -254,6 +254,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     define(name, false);
   }
 
+  void visitClassStmt(ClassStmt& stmt) {
+    assert(false);
+  }
+
+
   void visitExprStmt(ExprStmt& stmt) {
     visit(*stmt.expression);
     emit(Opcode::POP);

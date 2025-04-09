@@ -97,6 +97,9 @@ class Parser {
       if (match(TOKEN_RETURN)) {
         return returnStatement();
       }
+      if (match(TOKEN_CLASS)) {
+        return classStatement();
+      }
       if (match(TOKEN_FUNC)) {
         return functionStatement();
       }
@@ -110,7 +113,7 @@ class Parser {
     }
   }
 
-  std::unique_ptr<Stmt> declareStatement() {
+  std::unique_ptr<DeclareStmt> declareStatement() {
     auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
     consume(TOKEN_EQUAL, "Expected '='");
     auto expr = expression();
@@ -131,7 +134,7 @@ class Parser {
     return std::make_unique<ReturnStmt>(std::move(expr));
   }
 
-  std::unique_ptr<Stmt> functionStatement() {
+  std::unique_ptr<FunctionStmt> functionStatement() {
     auto identifier = consume(TOKEN_IDENTIFIER, "Expected identifier");
     auto symbol = strings.intern(std::string(identifier.lexeme));
     consume(TOKEN_LEFT_PAREN, "Expected '('");
@@ -157,6 +160,36 @@ class Parser {
     auto body = block();
 
     return S::Function(symbol, params, returnType, std::move(body));
+  }
+
+  std::unique_ptr<Stmt> classStatement() {
+    auto identifier = consume(TOKEN_IDENTIFIER, "Expected class name");
+    auto name = Var(strings.intern(std::string(identifier.lexeme)));
+
+    consume(TOKEN_LEFT_BRACE, "Expected '{' after class name");
+
+    std::vector<std::unique_ptr<DeclareStmt>> declarations;
+    std::vector<std::unique_ptr<FunctionStmt>> methods;
+
+    while (!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)) {
+      if (!current.isAtStartOfLine) {
+        throw errorAtCurrent("Class member must begin on a new line");
+      }
+
+      if (match(TOKEN_VAR)) {
+        auto decl = declareStatement();
+        declarations.push_back(std::move(decl));
+      } else if (match(TOKEN_FUNC)) {
+        auto func = functionStatement();
+        methods.push_back(std::move(func));
+      } else {
+        throw errorAtCurrent("Expected member or method declaration");
+      }
+    }
+
+    consume(TOKEN_RIGHT_BRACE, "Expected '}' after class body");
+
+    return std::make_unique<ClassStmt>(std::move(name), std::move(declarations), std::move(methods));
   }
 
   std::unique_ptr<Stmt> ifStatement() {

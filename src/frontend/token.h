@@ -53,6 +53,7 @@ enum TokenType {
   TOKEN_TRUE,
   TOKEN_VAR,
   TOKEN_WHILE,
+  TOKEN_INIT,
   // Misc
   TOKEN_EOF,
 };
