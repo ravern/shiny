@@ -1,9 +1,10 @@
 #ifndef AST_PRETTY_PRINTER_H
 #define AST_PRETTY_PRINTER_H
-#include "ast_visitor.h"
 #include <iostream>
 #include <string>
 #include <vector>
+
+#include "ast_visitor.h"
 
 class ASTPrettyPrinter : public ASTVisitor<ASTPrettyPrinter, void, void> {
 public:
@@ -152,6 +153,43 @@ public:
     isLastChild.push_back(true);
     visit(*stmt.body);
     isLastChild.pop_back();
+  }
+
+  void visitClassStmt(ClassStmt& stmt) {
+    printPrefix();
+    std::cout << "Class " << stringInterner.get(stmt.name.name) << std::endl;
+
+    // Print declarations
+    if (!stmt.declarations.empty()) {
+      isLastChild.push_back(stmt.methods.empty()); // Only last if no methods follow
+      printPrefix();
+      std::cout << "Declarations" << std::endl;
+
+      for (size_t i = 0; i < stmt.declarations.size(); ++i) {
+        bool isLast = (i == stmt.declarations.size() - 1) && stmt.methods.empty();
+        isLastChild.push_back(isLast);
+        visit(*stmt.declarations[i]);
+        isLastChild.pop_back();
+      }
+
+      isLastChild.pop_back(); // Declarations
+    }
+
+    // Print methods
+    if (!stmt.methods.empty()) {
+      isLastChild.push_back(true); // Methods always last section
+      printPrefix();
+      std::cout << "Methods" << std::endl;
+
+      for (size_t i = 0; i < stmt.methods.size(); ++i) {
+        bool isLast = (i == stmt.methods.size() - 1);
+        isLastChild.push_back(isLast);
+        visit(*stmt.methods[i]);
+        isLastChild.pop_back();
+      }
+
+      isLastChild.pop_back(); // Methods
+    }
   }
 
   void visitExprStmt(ExprStmt& stmt) {

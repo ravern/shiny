@@ -146,7 +146,14 @@ private:
           }
         }
         break;
-      case 'i': return checkKeyword(1, "f", TOKEN_IF);
+      case 'i':
+        if (current - start > 1) {
+          switch (source.at(start+1)) {
+            case 'f': return TOKEN_IF;
+            case 'n': return checkKeyword(2, "it", TOKEN_INIT);
+          }
+        }
+        break;
       case 'l': return checkKeyword(1, "et", TOKEN_LET);
       case 'n': return checkKeyword(1, "il", TOKEN_NIL);
       case 'p': return checkKeyword(1, "rint", TOKEN_PRINT);
@@ -159,14 +166,7 @@ private:
           }
         }
         break;
-      case 't':
-        if (current - start > 1) {
-          switch (source.at(start+1)) {
-            case 'r': return checkKeyword(2, "ue", TOKEN_TRUE);
-            case 'h': return checkKeyword(2, "is", TOKEN_SELF);
-          }
-        }
-        break;
+      case 't': return checkKeyword(1, "rue", TOKEN_TRUE);
       case 'v': return checkKeyword(1, "ar", TOKEN_VAR);
       case 'w': return checkKeyword(1, "hile", TOKEN_WHILE);
     }

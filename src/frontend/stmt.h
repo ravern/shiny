@@ -9,6 +9,7 @@ enum class StmtKind {
   Declare,
   Assign,
   Function,
+  Class,
   Expr,
   Return,
   If
@@ -123,6 +124,43 @@ public:
     if (params != otherFunc.params) return false;
     if (*returnType != *otherFunc.returnType) return false;
     if (*body != *otherFunc.body) return false;
+    return true;
+  }
+};
+
+class ClassStmt : public Stmt {
+public:
+  Var name;
+  std::vector<std::unique_ptr<DeclareStmt>> declarations;
+  std::vector<std::unique_ptr<FunctionStmt>> methods;
+
+  ClassStmt(Var name,
+            std::vector<std::unique_ptr<DeclareStmt>> declarations,
+            std::vector<std::unique_ptr<FunctionStmt>> methods)
+    : Stmt(StmtKind::Class),
+      name(std::move(name)),
+      declarations(std::move(declarations)),
+      methods(std::move(methods)) {}
+
+  bool operator==(const Stmt& other) const override {
+    if (kind != other.kind) return false;
+    const auto& otherClass = static_cast<const ClassStmt&>(other);
+
+    if (name != otherClass.name) return false;
+
+    if (declarations.size() != otherClass.declarations.size() ||
+        methods.size() != otherClass.methods.size()) {
+      return false;
+    }
+
+    for (size_t i = 0; i < declarations.size(); ++i) {
+      if (*declarations[i] != *otherClass.declarations[i]) return false;
+    }
+
+    for (size_t i = 0; i < methods.size(); ++i) {
+      if (*methods[i] != *otherClass.methods[i]) return false;
+    }
+
     return true;
   }
 };
