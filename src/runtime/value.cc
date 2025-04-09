@@ -9,13 +9,13 @@ const Value Value::TRUE(uint64_t(MASK_NAN | TAG_TRUE));
 const Value Value::FALSE(uint64_t(MASK_NAN | TAG_FALSE));
 
 Value::~Value() {
-  if (isObject()) {
+  if (isAnyObject()) {
     ObjectPtr<std::monostate>::__remember((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
   }
 }
 
 Value::Value(const Value& other) {
-  if (other.isObject()) {
+  if (other.isAnyObject()) {
     ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
     initObject<std::monostate>(std::move(ptr));
   } else {
@@ -29,7 +29,7 @@ Value::Value(Value&& other) {
 }
 
 Value& Value::operator=(const Value& other) {
-  if (other.isObject()) {
+  if (other.isAnyObject()) {
     ObjectPtr<std::monostate> ptr = other.asObject<std::monostate>();
     initObject<std::monostate>(std::move(ptr));
   } else {

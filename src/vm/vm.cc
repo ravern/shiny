@@ -9,9 +9,11 @@
 #include "../runtime/object_ptr.h"
 #include "../runtime/value.h"
 
-VM::VM() {}
+VM::VM(StringInterner& stringInterner) : stringInterner(stringInterner) {}
 
 Value VM::evaluate(ObjectPtr<FunctionObject> function) {
+  std::cout << "==== Starting evaluation ====" << std::endl;
+
   // Initialize the VM state for a new evaluation
   closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
   ip = 0;
@@ -25,8 +27,8 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
     Opcode opcode = static_cast<Opcode>(instruction & 0xFF);
     uint32_t operand = instruction >> 8;
 
-    std::cout << "ip: " << ip << " opcode: " << opcodeToString(opcode)
-              << " operand: " << operand << std::endl;
+    std::cout << instructionToString(ip - 1, instruction, stringInterner)
+              << std::endl;
 
     // Execute the instruction
     switch (opcode) {
@@ -65,15 +67,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         // Capture all the upvalues to create the closure
         std::vector<ObjectPtr<UpvalueObject>> upvalues;
         for (auto& functionUpvalue : newFunction->getUpvalues()) {
-          if (functionUpvalue.isLocal) {
-            int stackSlot = bp + functionUpvalue.index;
-            auto upvalue = pushUpvalue(&stack[stackSlot]);
-            upvalues.push_back(upvalue);
-          } else {
-            auto parentClosure = callStack.back().closure;
-            auto upvalue = parentClosure->getUpvalue(functionUpvalue.index);
-            upvalues.push_back(upvalue);
-          }
+          upvalues.push_back(captureUpvalue(functionUpvalue));
         }
 
         // FIXME: what a monstrosity
@@ -89,15 +83,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() + b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() + b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() + b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() + b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for add");
         }
         break;
       }
@@ -106,15 +97,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() - b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() - b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() - b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() - b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for sub");
         }
         break;
       }
@@ -123,15 +111,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() * b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() * b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() * b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() * b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for mul");
         }
         break;
       }
@@ -140,15 +125,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() / b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() / b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() / b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() / b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for div");
         }
         break;
       }
@@ -157,6 +139,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for mod");
+        }
         stack.push_back(a.asInt() % b.asInt());
         break;
       }
@@ -178,6 +163,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for equal");
+        }
         stack.push_back(a == b);
         break;
       }
@@ -186,6 +174,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for not-equal");
+        }
         stack.push_back(a != b);
       }
       case Opcode::LT: {
@@ -193,15 +184,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() < b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() < b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() < b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() < b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for less-than");
         }
         break;
       }
@@ -210,15 +198,13 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() <= b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() <= b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() <= b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() <= b.asDouble());
+        } else {
+          throw std::runtime_error(
+              "Invalid operand types for less-than-or-equal");
         }
         break;
       }
@@ -227,15 +213,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() > b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() > b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() > b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() > b.asDouble());
+        } else {
+          throw std::runtime_error("Invalid operand types for greater-than");
         }
         break;
       }
@@ -244,15 +227,13 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
-        switch (operand) {
-          case 1:
-            stack.push_back(a.asInt() >= b.asInt());
-            break;
-          case 2:
-            stack.push_back(a.asDouble() >= b.asDouble());
-            break;
-          default:
-            throw std::runtime_error("Unknown operand");
+        if (a.isInt() && b.isInt()) {
+          stack.push_back(a.asInt() >= b.asInt());
+        } else if (a.isDouble() && b.isDouble()) {
+          stack.push_back(a.asDouble() >= b.asDouble());
+        } else {
+          throw std::runtime_error(
+              "Invalid operand types for greater-than-or-equal");
         }
         break;
       }
@@ -261,6 +242,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isBool() || !b.isBool()) {
+          throw std::runtime_error("Invalid operand types for and");
+        }
         stack.push_back(a.asBool() && b.asBool());
         break;
       }
@@ -269,12 +253,18 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isBool() || !b.isBool()) {
+          throw std::runtime_error("Invalid operand types for or");
+        }
         stack.push_back(a.asBool() || b.asBool());
         break;
       }
       case Opcode::NOT: {
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isBool()) {
+          throw std::runtime_error("Invalid operand types for not");
+        }
         stack.push_back(!a.asBool());
         break;
       }
@@ -283,6 +273,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for bit-and");
+        }
         stack.push_back(a.asInt() & b.asInt());
         break;
       }
@@ -291,6 +284,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for bit-or");
+        }
         stack.push_back(a.asInt() | b.asInt());
         break;
       }
@@ -299,12 +295,18 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for bit-xor");
+        }
         stack.push_back(a.asInt() ^ b.asInt());
         break;
       }
       case Opcode::BIT_NOT: {
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt()) {
+          throw std::runtime_error("Invalid operand types for bit-not");
+        }
         stack.push_back(~a.asInt());
         break;
       }
@@ -313,6 +315,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for shift-left");
+        }
         stack.push_back(a.asInt() << b.asInt());
         break;
       }
@@ -321,6 +326,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.pop_back();
         Value a = stack.back();
         stack.pop_back();
+        if (!a.isInt() || !b.isInt()) {
+          throw std::runtime_error("Invalid operand types for shift-right");
+        }
         stack.push_back(a.asInt() >> b.asInt());
         break;
       }
@@ -334,18 +342,6 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       case Opcode::STORE: {
         int stackSlot = bp + operand;
         stack[stackSlot] = stack.back();
-        stack.pop_back();
-        break;
-      }
-      case Opcode::GLOBAL_LOAD: {
-        stack.push_back(globals[operand]);
-        break;
-      }
-      case Opcode::GLOBAL_STORE: {
-        if (operand >= globals.size()) {
-          globals.resize(operand + 1);  // Resize to allow new globals
-        }
-        globals[operand] = stack.back();
         stack.pop_back();
         break;
       }
@@ -375,7 +371,19 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       }
       case Opcode::CALL: {
         pushFrame(operand);
-        break;
+
+        printStack();
+
+        // Print entering frame
+        std::optional<SymbolId> name = closure->getFunction()->getName();
+        std::cout << "== Entering "
+                  << (name.has_value() ? stringInterner.get(name.value())
+                                       : "<anonymous>")
+                  << " ==" << std::endl;
+
+        // Skip printing the stack at the end of iteration (already printed the
+        // stack above)
+        continue;
       }
       case Opcode::RETURN: {
         if (callStack.empty()) {
@@ -384,7 +392,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         }
 
         // Close all the upvalues up to stack base
-        closeUpvalues(&stack[bp]);
+        closeUpvalues(bp);
 
         // Pop everything up to the base pointer
         Value returnValue = stack.back();
@@ -393,35 +401,65 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         }
         stack.push_back(returnValue);
 
+        // Print the stack here
+        printStack();
+
+        // Print leaving frame
+        std::optional<SymbolId> name = closure->getFunction()->getName();
+        std::cout << "== Leaving "
+                  << (name.has_value() ? stringInterner.get(name.value())
+                                       : "<anonymous>")
+                  << " ==" << std::endl;
+
         popFrame();
-        break;
+
+        // Skip printing the stack at the end of iteration (already printed the
+        // stack above)
+        continue;
       }
       case Opcode::HALT: {
+        std::cout << "==== Evaluation complete ====" << std::endl;
         return lastPoppedValue;
+      }
+
+      // Opcodes for globals
+      case Opcode::GLOBAL_LOAD: {
+        stack.push_back(globals[operand]);
+        break;
+      }
+      case Opcode::GLOBAL_STORE: {
+        if (operand >= globals.size()) {
+          globals.resize(operand + 1);  // Resize to allow new globals
+        }
+        globals[operand] = stack.back();
+        stack.pop_back();
+        break;
       }
 
       // Opcodes for upvalue manipulation
       case Opcode::UPVALUE_LOAD: {
         int upvalueIndex = operand;
         auto upvalue = closure->getUpvalue(upvalueIndex);
-        stack.push_back(*upvalue->getValue());
+        stack.push_back(upvalue->getValue(stack));
         break;
       }
       case Opcode::UPVALUE_STORE: {
         int upvalueIndex = operand;
         auto upvalue = closure->getUpvalue(upvalueIndex);
-        *upvalue->getValue() = stack.back();
+        upvalue->setValue(stack.back(), stack);
         stack.pop_back();
         break;
       }
       case Opcode::UPVALUE_CLOSE: {
-        closeUpvalues(&stack[stack.size() - 1]);
+        closeUpvalues(stack.size() - 1);
         break;
       }
 
       default:
         throw std::runtime_error("Unimplemented opcode");
     }
+
+    printStack();
   }
 }
 
@@ -447,7 +485,7 @@ void VM::popFrame() {
 ObjectPtr<UpvalueObject> VM::captureUpvalue(Upvalue functionUpvalue) {
   if (functionUpvalue.isLocal) {
     int stackSlot = bp + functionUpvalue.index;
-    auto upvalue = pushUpvalue(&stack[stackSlot]);
+    auto upvalue = pushUpvalue(stackSlot);
     return upvalue;
   } else {
     auto parentClosure = callStack.back().closure;
@@ -456,27 +494,27 @@ ObjectPtr<UpvalueObject> VM::captureUpvalue(Upvalue functionUpvalue) {
   }
 }
 
-ObjectPtr<UpvalueObject> VM::pushUpvalue(Value* value) {
-  ObjectPtr<UpvalueObject> upvalue;
+ObjectPtr<UpvalueObject> VM::pushUpvalue(int stackSlot) {
+  ObjectPtr<UpvalueObject> upvalue(std::move(UpvalueObject(stackSlot)));
   if (upvalueStack.has_value()) {
     upvalue = ObjectPtr<UpvalueObject>(
-        std::move(UpvalueObject(value, upvalueStack.value())));
+        std::move(UpvalueObject(stackSlot, upvalueStack.value())));
   } else {
-    upvalue = ObjectPtr<UpvalueObject>(UpvalueObject(value));
+    upvalue = ObjectPtr<UpvalueObject>(UpvalueObject(stackSlot));
   }
   upvalueStack = upvalue;
   return upvalue;
 }
 
-void VM::closeUpvalues(Value* upTillValue) {
+void VM::closeUpvalues(int upTillStackSlot) {
   std::optional<ObjectPtr<UpvalueObject>> prev = std::nullopt;
   std::optional<ObjectPtr<UpvalueObject>> current = upvalueStack;
   while (true) {
     if (!current.has_value() ||
-        current.value().get()->getValue() < upTillValue) {
+        current.value()->getStackSlot() < upTillStackSlot) {
       break;
     }
-    current.value()->close();
+    current.value()->close(stack);
     if (prev.has_value()) {
       prev.value()->getNext() = current.value()->getNext();
     } else {
@@ -484,5 +522,34 @@ void VM::closeUpvalues(Value* upTillValue) {
     }
     prev = current;
     current = current.value()->getNext();
+  }
+}
+
+void VM::printStack() {
+  if (stack.empty()) {
+    std::cout << "      <empty>" << std::endl;
+  } else {
+    std::cout << "      ";
+    for (auto& value : stack) {
+      std::cout << valueToString(value, stringInterner) << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+void VM::printUpvalueStack() {
+  if (!upvalueStack.has_value()) {
+    std::cout << "      <empty>" << std::endl;
+  } else {
+    std::cout << "      ";
+    std::vector<ObjectPtr<UpvalueObject>> upvalues;
+    auto current = upvalueStack;
+    while (current.has_value()) {
+      upvalues.insert(upvalues.begin(), current.value());
+      current = current.value()->getNext();
+    }
+    for (auto& upvalue : upvalues) {
+      std::cout << valueToString(Value(upvalue), stringInterner) << std::endl;
+    }
   }
 }

@@ -20,7 +20,8 @@ class ObjectPtr {
   ObjectPtr& operator=(ObjectPtr&& other);
   T* operator->();
 
-  Object* __getPtr() const { return ptr; }
+  Object* __getPtr() const;
+  static bool __is(uint64_t raw);
   static ObjectPtr<T> __remember(uint64_t raw);
   uint64_t __forget();
 

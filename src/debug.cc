@@ -2,6 +2,9 @@
 
 #include <iomanip>
 #include <iostream>
+#include <sstream>
+
+#include "runtime/object.h"
 
 std::string opcodeToString(Opcode opcode) {
   switch (opcode) {
@@ -106,83 +109,103 @@ std::string opcodeToString(Opcode opcode) {
   }
 }
 
-void disassembleChunk(const Chunk& chunk, const std::string& name) {
-  std::cout << "== " << name << " ==\n";
+std::string chunkToString(const Chunk& chunk, const std::string& name,
+                          const StringInterner& stringInterner) {
+  std::stringstream ss;
+
+  ss << "== " << name << " ==\n";
 
   for (size_t offset = 0; offset < chunk.instructions.size(); ++offset) {
-    Instruction instr = chunk.instructions[offset];
-    Opcode opcode = static_cast<Opcode>(instr & 0xFF);
-    uint32_t operand = instr >> 8;
-
-    std::cout << std::setw(4) << std::left << offset << "  ";
-    std::string opname = opcodeToString(opcode);
-    std::cout << std::setw(24) << std::left << opname;
-
-    switch (opcode) {
-      case Opcode::CONST:
-      case Opcode::CLOSURE:
-      case Opcode::BUILT_IN:
-      case Opcode::ADD:
-      case Opcode::SUB:
-      case Opcode::MUL:
-      case Opcode::DIV:
-      case Opcode::NEG:
-      case Opcode::LT:
-      case Opcode::LTE:
-      case Opcode::GT:
-      case Opcode::GTE:
-      case Opcode::LOAD:
-      case Opcode::STORE:
-      case Opcode::CALL:
-      case Opcode::TAIL_CALL:
-      case Opcode::JUMP:
-      case Opcode::UPVALUE_LOAD:
-      case Opcode::UPVALUE_STORE:
-      case Opcode::GLOBAL_LOAD:
-      case Opcode::GLOBAL_STORE:
-      case Opcode::OBJECT_GET_MEMBER:
-      case Opcode::OBJECT_SET_MEMBER:
-      case Opcode::OBJECT_GET_METHOD: {
-        std::cout << operand;
-        switch (opcode) {
-          case Opcode::ADD:
-          case Opcode::SUB:
-          case Opcode::MUL:
-          case Opcode::DIV:
-          case Opcode::NEG:
-          case Opcode::LT:
-          case Opcode::LTE:
-          case Opcode::GT:
-          case Opcode::GTE: {
-            switch (operand) {
-              case 1:
-                std::cout << " (int)";
-                break;
-              case 2:
-                std::cout << " (double)";
-                break;
-              case 3:
-                std::cout << " (string)";
-                break;
-              case 4:
-                std::cout << " (array)";
-                break;
-              default:
-                std::cout << " (unknown)";
-                break;
-            }
-          }
-
-          default:
-            break;
-        }
-        break;
-      }
-
-      default:
-        break;
-    }
-
-    std::cout << "\n";
+    ss << instructionToString(offset, chunk.instructions[offset],
+                              stringInterner);
+    ss << "\n";
   }
+
+  return std::move(ss.str());
+}
+
+std::string instructionToString(size_t offset, Instruction instr,
+                                const StringInterner& stringInterner) {
+  std::stringstream ss;
+
+  Opcode opcode = static_cast<Opcode>(instr & 0xFF);
+  uint32_t operand = instr >> 8;
+
+  ss << std::setw(4) << std::left << offset << "  ";
+  std::string opname = opcodeToString(opcode);
+  ss << std::setw(20) << std::left << opname;
+
+  switch (opcode) {
+    case Opcode::CONST:
+    case Opcode::CLOSURE:
+    case Opcode::BUILT_IN:
+    case Opcode::ADD:
+    case Opcode::SUB:
+    case Opcode::MUL:
+    case Opcode::DIV:
+    case Opcode::NEG:
+    case Opcode::LT:
+    case Opcode::LTE:
+    case Opcode::GT:
+    case Opcode::GTE:
+    case Opcode::LOAD:
+    case Opcode::STORE:
+    case Opcode::CALL:
+    case Opcode::TAIL_CALL:
+    case Opcode::JUMP:
+    case Opcode::UPVALUE_LOAD:
+    case Opcode::UPVALUE_STORE:
+    case Opcode::GLOBAL_LOAD:
+    case Opcode::GLOBAL_STORE:
+    case Opcode::OBJECT_GET_MEMBER:
+    case Opcode::OBJECT_SET_MEMBER:
+    case Opcode::OBJECT_GET_METHOD: {
+      ss << operand;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return std::move(ss.str());
+}
+
+std::string valueToString(const Value& value,
+                          const StringInterner& stringInterner) {
+  std::stringstream ss;
+  if (value.isNil()) {
+    ss << "nil";
+  } else if (value.isBool()) {
+    ss << (value.asBool() ? "true" : "false");
+  } else if (value.isInt()) {
+    ss << value.asInt();
+  } else if (value.isDouble()) {
+    ss << value.asDouble();
+  } else if (value.isObject<FunctionObject>()) {
+    auto function = value.asObject<FunctionObject>();
+    ss << (function->getName().has_value()
+               ? stringInterner.get(function->getName().value())
+               : "<anonymous>");
+    ss << "@" << function.__getPtr();
+  } else if (value.isObject<ClosureObject>()) {
+    auto closure = value.asObject<ClosureObject>();
+    ss << (closure->getFunction()->getName().has_value()
+               ? stringInterner.get(closure->getFunction()->getName().value())
+               : "<anonymous>");
+    ss << "@" << closure.__getPtr();
+  } else if (value.isObject<UpvalueObject>()) {
+    auto upvalue = value.asObject<UpvalueObject>();
+    ss << "(" << (upvalue->isOpen() ? "open" : "closed") << ","
+       << (upvalue->isOpen()
+               ? std::to_string(upvalue->getStackSlot())
+               : valueToString(upvalue->getClosedValue(), stringInterner))
+       << ")@" << upvalue.__getPtr();
+  } else if (value.isObject<ArrayObject>()) {
+    auto array = value.asObject<ArrayObject>();
+    ss << "[";
+    ss << "]@" << array.__getPtr();
+  } else {
+    throw std::runtime_error("Tried to convert unknown value type to string");
+  }
+  return std::move(ss.str());
 }

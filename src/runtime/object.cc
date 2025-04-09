@@ -1,6 +1,6 @@
 #include "object.h"
 
-FunctionObject::FunctionObject() : name(std::nullopt) {}
+FunctionObject::FunctionObject(std::optional<SymbolId> name) : name(name) {}
 
 std::optional<SymbolId> FunctionObject::getName() const { return name; }
 
@@ -19,12 +19,56 @@ int FunctionObject::addUpvalue(Upvalue upvalue) {
   return upvalues.size() - 1;
 }
 
-void UpvalueObject::close() {
-  closedValue = *value;
-  value = &closedValue;
+UpvalueObject::UpvalueObject(int stackSlot)
+    : closedValue(Value::NIL),
+      stackSlot(stackSlot),
+      open(true),
+      next(std::nullopt) {}
+
+UpvalueObject::UpvalueObject(int stackSlot, ObjectPtr<UpvalueObject> next)
+    : closedValue(Value::NIL),
+      stackSlot(stackSlot),
+      open(true),
+      next(std::move(next)) {}
+
+void UpvalueObject::close(const std::vector<Value>& stack) {
+  if (open) {
+    closedValue = getValue(stack);
+    open = false;
+  }
 }
 
-Value* UpvalueObject::getValue() const { return value; }
+bool UpvalueObject::isOpen() const { return open; }
+
+int UpvalueObject::getStackSlot() const {
+  if (!open) {
+    throw std::runtime_error("Tried to get stack slot of open upvalue");
+  }
+  return stackSlot;
+}
+
+Value UpvalueObject::getClosedValue() const {
+  if (open) {
+    throw std::runtime_error("Tried to get closed value of open upvalue");
+  }
+  return closedValue;
+}
+
+void UpvalueObject::setValue(const Value& value, std::vector<Value>& stack) {
+  if (open) {
+    stack[stackSlot] = value;
+  } else {
+    closedValue = value;
+  }
+}
+
+Value UpvalueObject::getValue(const std::vector<Value>& stack) const {
+  if (open) {
+    return stack[stackSlot];
+  } else {
+    return closedValue;
+  }
+}
 
 std::optional<ObjectPtr<UpvalueObject>>& UpvalueObject::getNext() {
   return next;
@@ -33,12 +77,6 @@ std::optional<ObjectPtr<UpvalueObject>>& UpvalueObject::getNext() {
 const std::optional<ObjectPtr<UpvalueObject>>& UpvalueObject::getNext() const {
   return next;
 }
-
-UpvalueObject::UpvalueObject(Value* value)
-    : closedValue(Value::NIL), value(value), next(std::nullopt) {}
-
-UpvalueObject::UpvalueObject(Value* value, ObjectPtr<UpvalueObject> next)
-    : closedValue(Value::NIL), value(value), next(std::move(next)) {}
 
 ClosureObject::ClosureObject(ObjectPtr<FunctionObject> function)
     : function(std::move(function)) {

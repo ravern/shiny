@@ -38,15 +38,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
  public:
   Compiler(Compiler* enclosing_compiler, FunctionKind kind,
-           std::vector<VariableName>& globals,
-           StringInterner& stringInterner, Stmt& ast,
-           std::optional<SymbolId> name = std::nullopt)
+           std::vector<VariableName>& globals, StringInterner& stringInterner,
+           Stmt& ast, std::optional<SymbolId> name = std::nullopt)
       : enclosingCompiler(enclosing_compiler),
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
         name(name),
-        globals(globals) {}
+        globals(globals),
+        function(name) {}
 
   FunctionObject compile() {
     switch (kind) {
@@ -79,8 +79,17 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         throw std::runtime_error("Unknown FunctionKind");
     }
 
-    disassembleChunk(function.getChunk(),
-                     name ? stringInterner.get(name.value()) : "<function>");
+    std::string chunkName;
+    if (name.has_value()) {
+      chunkName = stringInterner.get(name.value());
+    } else if (kind == FunctionKind::TopLevel) {
+      chunkName = "<top level>";
+    } else {
+      chunkName = "<anonymous>";
+    }
+
+    std::cout << chunkToString(function.getChunk(), chunkName, stringInterner)
+              << std::endl;
 
     return function;
   }
@@ -241,7 +250,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
     declare(name);
-    defineWithoutEmitIfGlobal(name); // allow recursion
+    defineWithoutEmitIfGlobal(name);  // allow recursion
 
     auto compiler = Compiler(this, FunctionKind::Function, globals,
                              stringInterner, stmt, name);
@@ -436,8 +445,9 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   void emit(Opcode opcode, const std::shared_ptr<Type>& type) {
     uint32_t opType = type->kind == TypeKind::Integer ? 1
-                      : type->kind == TypeKind::Double ? 2
-                      : throw std::runtime_error("Unexpected TypeKind");
+                      : type->kind == TypeKind::Double
+                          ? 2
+                          : throw std::runtime_error("Unexpected TypeKind");
     emit(opcode, opType);
   }
 

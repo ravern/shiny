@@ -72,6 +72,16 @@ std::monostate* ObjectPtr<std::monostate>::operator->() {
 }
 
 template <typename T>
+Object* ObjectPtr<T>::__getPtr() const {
+  return ptr;
+}
+
+template <typename T>
+bool ObjectPtr<T>::__is(uint64_t raw) {
+  return std::bit_cast<Object*>(raw)->is<T>();
+}
+
+template <typename T>
 ObjectPtr<T> ObjectPtr<T>::__remember(uint64_t raw) {
   ObjectPtr<T> ptr;
   ptr.ptr = std::bit_cast<Object*>(raw);
@@ -88,6 +98,6 @@ uint64_t ObjectPtr<T>::__forget() {
 template class ObjectPtr<FunctionObject>;
 template class ObjectPtr<UpvalueObject>;
 template class ObjectPtr<ClosureObject>;
-template class ObjectPtr<std::monostate>;
 template class ObjectPtr<ArrayObject>;
 // template class ObjectPtr<DictObject>;
+template class ObjectPtr<std::monostate>;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <unordered_map>
 #include <variant>
 
@@ -16,7 +17,7 @@ struct Upvalue {
 
 class FunctionObject {
  public:
-  FunctionObject();
+  FunctionObject(std::optional<SymbolId> name = std::nullopt);
   ~FunctionObject() = default;
 
   std::optional<SymbolId> getName() const;
@@ -35,19 +36,24 @@ class FunctionObject {
 
 class UpvalueObject {
  public:
-  UpvalueObject(Value* value);
-  UpvalueObject(Value* value, ObjectPtr<UpvalueObject> next);
+  UpvalueObject(int stackSlot);
+  UpvalueObject(int stackSlot, ObjectPtr<UpvalueObject> next);
   ~UpvalueObject() = default;
 
-  void close();
+  void close(const std::vector<Value>& stack);
 
-  Value* getValue() const;
+  bool isOpen() const;
+  int getStackSlot() const;
+  Value getClosedValue() const;
+  Value getValue(const std::vector<Value>& stack) const;
+  void setValue(const Value& value, std::vector<Value>& stack);
   std::optional<ObjectPtr<UpvalueObject>>& getNext();
   const std::optional<ObjectPtr<UpvalueObject>>& getNext() const;
 
  private:
   Value closedValue;
-  Value* value;
+  int stackSlot;
+  bool open;
   std::optional<ObjectPtr<UpvalueObject>> next;
 };
 
@@ -105,8 +111,17 @@ class Object {
     return nullptr;
   }
 
-  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject>
-      data;
+  template <typename T>
+  bool is() const {
+    return std::holds_alternative<T>(data);
+  }
+
+  template <>
+  bool is<std::monostate>() const {
+    return false;
+  }
+
+  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject> data;
   int strongCount;
   int weakCount;
 };

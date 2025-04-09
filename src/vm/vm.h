@@ -14,7 +14,7 @@ struct Frame {
 
 class VM {
  public:
-  VM();
+  VM(StringInterner& stringInterner);
 
   Value evaluate(ObjectPtr<FunctionObject> function);
 
@@ -22,9 +22,12 @@ class VM {
   void pushFrame(int arity);
   void popFrame();
   ObjectPtr<UpvalueObject> captureUpvalue(Upvalue functionUpvalue);
-  ObjectPtr<UpvalueObject> pushUpvalue(Value* value);
-  void closeUpvalues(Value* upTillValue);
+  ObjectPtr<UpvalueObject> pushUpvalue(int stackSlot);
+  void closeUpvalues(int upTillStackSlot);
+  void printStack();
+  void printUpvalueStack();
 
+  StringInterner& stringInterner;
   ObjectPtr<ClosureObject> closure;
   int ip;
   int bp;

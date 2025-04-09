@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bit>
+#include <iostream>
 #include <stdexcept>
 #include <utility>
 
@@ -39,7 +40,13 @@ class Value {
 
   template <typename T>
   Value(ObjectPtr<T>&& o) {
-    initObject<T>(std::move(o));
+    initObject(std::move(o));
+  }
+
+  template <typename T>
+  Value(const ObjectPtr<T>& o) {
+    ObjectPtr<T> ptr = o;
+    initObject(std::move(ptr));
   }
 
   ~Value();
@@ -48,12 +55,20 @@ class Value {
   bool isBool() const { return *this == TRUE || *this == FALSE; }
   bool isInt() const { return !isDouble() && (raw & MASK_TAG) == TAG_INT; }
   bool isDouble() const { return (raw & MASK_NAN) != MASK_NAN; }
-  bool isObject() const { return !isDouble() && (raw & MASK_TAG) == TAG_OBJ; }
+
+  bool isAnyObject() const {
+    return !isDouble() && (raw & MASK_TAG) == TAG_OBJ;
+  }
+
+  template <typename T>
+  bool isObject() const {
+    return isAnyObject() && ObjectPtr<T>::__is(getPayload());
+  }
 
   bool asBool() const { return *this == TRUE; }
 
   int64_t asInt() const {
-    uint64_t payload = (raw & MASK_PAYLOAD) >> NUM_TAG_BITS;
+    uint64_t payload = getPayload();
     // make sure to sign-extend a signed int
     if ((payload & MASK_INT_SIGN) == MASK_INT_SIGN) {
       return std::bit_cast<int64_t>(payload | MASK_INT_SIGN_EXTEND);
@@ -66,12 +81,12 @@ class Value {
 
   template <typename T>
   const ObjectPtr<T> asObject() const {
-    return ObjectPtr<T>((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
+    return ObjectPtr<T>(getPayload());
   }
 
   template <typename T>
   ObjectPtr<T> asObject() {
-    return ObjectPtr<T>((raw & MASK_PAYLOAD) >> NUM_TAG_BITS);
+    return ObjectPtr<T>(getPayload());
   }
 
   Value& operator=(const Value& other);
@@ -104,6 +119,8 @@ class Value {
     }
     raw = MASK_NAN | payload;
   }
+
+  uint64_t getPayload() const { return (raw & MASK_PAYLOAD) >> NUM_TAG_BITS; }
 
   uint64_t raw;
 };
