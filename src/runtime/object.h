@@ -76,6 +76,38 @@ class ClosureObject {
   std::vector<ObjectPtr<UpvalueObject>> upvalues;
 };
 
+class MethodObject {
+ public:
+  MethodObject(ObjectPtr<FunctionObject> function, Value self);
+  ~MethodObject() = default;
+
+ private:
+  ObjectPtr<FunctionObject> function;
+  Value self;
+};
+
+class ClassObject {
+ public:
+  ClassObject(ObjectPtr<ClassObject> superklass,
+              std::optional<SymbolId> name = std::nullopt);
+  ~ClassObject() = default;
+
+ private:
+  ObjectPtr<ClassObject> superklass;
+  std::optional<SymbolId> name;
+  std::vector<ObjectPtr<FunctionObject>> methods;
+};
+
+class InstanceObject {
+ public:
+  InstanceObject(ObjectPtr<ClassObject> klass);
+  ~InstanceObject() = default;
+
+ private:
+  ObjectPtr<ClassObject> klass;
+  std::vector<Value> fields;
+};
+
 class ArrayObject {
  public:
   ArrayObject();

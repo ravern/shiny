@@ -94,12 +94,14 @@ std::string opcodeToString(Opcode opcode) {
       return "UPVALUE_STORE";
     case Opcode::UPVALUE_CLOSE:
       return "UPVALUE_CLOSE";
-    case Opcode::OBJECT_GET_MEMBER:
-      return "OBJECT_GET_MEMBER";
-    case Opcode::OBJECT_SET_MEMBER:
-      return "OBJECT_SET_MEMBER";
-    case Opcode::OBJECT_GET_METHOD:
-      return "OBJECT_GET_METHOD";
+    case Opcode::CLASS:
+      return "CLASS";
+    case Opcode::METHOD:
+      return "METHOD";
+    case Opcode::MEMBER_GET:
+      return "MEMBER_GET";
+    case Opcode::MEMBER_SET:
+      return "MEMBER_SET";
     case Opcode::GLOBAL_LOAD:
       return "GLOBAL_LOAD";
     case Opcode::GLOBAL_STORE:
@@ -157,9 +159,9 @@ std::string instructionToString(size_t offset, Instruction instr,
     case Opcode::UPVALUE_STORE:
     case Opcode::GLOBAL_LOAD:
     case Opcode::GLOBAL_STORE:
-    case Opcode::OBJECT_GET_MEMBER:
-    case Opcode::OBJECT_SET_MEMBER:
-    case Opcode::OBJECT_GET_METHOD: {
+    case Opcode::MEMBER_GET:
+    case Opcode::MEMBER_SET:
+    case Opcode::METHOD: {
       ss << operand;
       break;
     }

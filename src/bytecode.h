@@ -57,17 +57,18 @@ enum class Opcode : uint8_t {
   RETURN = 0x64,
   HALT = 0x65,
 
-  GLOBAL_LOAD = 0x91,   // operand: index of global
-  GLOBAL_STORE = 0x92,  // operand: index of global
+  GLOBAL_LOAD = 0x70,   // operand: index of global
+  GLOBAL_STORE = 0x71,  // operand: index of global
 
-  UPVALUE_LOAD = 0x70,   // operand: index of upvalue
-  UPVALUE_STORE = 0x71,  // operand: index of upvalue
-  UPVALUE_CLOSE = 0x72,
+  UPVALUE_LOAD = 0x80,   // operand: index of upvalue
+  UPVALUE_STORE = 0x81,  // operand: index of upvalue
+  UPVALUE_CLOSE = 0x82,
 
-  OBJECT_GET_MEMBER = 0x81,  // operand: index of member
-  OBJECT_SET_MEMBER = 0x82,  // operand: index of member
-  OBJECT_GET_METHOD = 0x83,  // operand: index of method definition
+  CLASS = 0x90,
+  METHOD = 0x91,  // operand: index of method
 
+  MEMBER_GET = 0xa1,  // operand: index of member
+  MEMBER_SET = 0xa2,  // operand: index of member
 };
 
 struct Chunk {
