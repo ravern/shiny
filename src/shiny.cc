@@ -32,14 +32,14 @@ namespace Shiny {
           return;
         }
 
-        // ASTPrettyPrinter printer(interner);
-        // printer.print(*ast);
+        ASTPrettyPrinter printer(interner);
+        printer.print(*ast);
 
         TypeInference inference(interner, &inferenceGlobals);
         inference.perform(*ast);
 
-        ASTPrettyPrinter printer(interner);
-        printer.print(*ast);
+        ASTPrettyPrinter printer2(interner);
+        printer2.print(*ast);
 
         Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel, compilerGlobals, interner, *ast);
         auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());

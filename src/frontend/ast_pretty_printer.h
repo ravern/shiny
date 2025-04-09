@@ -101,6 +101,45 @@ public:
     isLastChild.pop_back();
   }
 
+  void visitAssignExpr(AssignExpr& expr) {
+    printPrefix();
+    std::cout << "AssignExpr " << stringInterner.get(expr.var.name) << std::endl;
+
+    isLastChild.push_back(true);
+    visit(*expr.expression);
+    isLastChild.pop_back();
+  }
+
+  void visitGetExpr(GetExpr& expr) {
+    printPrefix();
+    std::cout << "GetExpr " << stringInterner.get(expr.name.name) << std::endl;
+
+    isLastChild.push_back(true);
+    visit(*expr.obj);
+    isLastChild.pop_back();
+  }
+
+  void visitSetExpr(SetExpr& expr) {
+    printPrefix();
+    std::cout << "SetExpr " << stringInterner.get(expr.var.name) << std::endl;
+
+    isLastChild.push_back(false);
+    printPrefix();
+    std::cout << "Object" << std::endl;
+    isLastChild.push_back(false);
+    visit(*expr.obj);
+    isLastChild.pop_back();
+    isLastChild.pop_back();
+
+    isLastChild.push_back(true);
+    printPrefix();
+    std::cout << "Value" << std::endl;
+    isLastChild.push_back(true);
+    visit(*expr.value);
+    isLastChild.pop_back();
+    isLastChild.pop_back();
+  }
+
   // Statement visitors
   void visitBlockStmt(BlockStmt& stmt) {
     printPrefix();

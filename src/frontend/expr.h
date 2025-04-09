@@ -15,6 +15,9 @@ enum class ExprKind {
   Apply,
   Binary,
   Unary,
+  Assign,
+  Get,
+  Set,
 };
 
 class Expr {
@@ -245,13 +248,34 @@ public:
   }
 };
 
+class AssignExpr : public Expr {
+public:
+  Var var;
+  std::unique_ptr<Expr> expression;
+
+  AssignExpr(Var var, std::unique_ptr<Expr> expression)
+    : Expr(ExprKind::Assign),
+      var(std::move(var)),
+      expression(std::move(expression)) {}
+
+  bool operator==(const Expr& other) const override {
+    if (kind != other.kind) {
+      return false;
+    }
+
+    const auto& otherAssign = static_cast<const AssignExpr&>(other);
+    return var == otherAssign.var &&
+      *expression == *otherAssign.expression;
+  }
+};
+
 class GetExpr : public Expr {
 public:
   std::unique_ptr<Expr> obj;
   Var name;
 
   explicit GetExpr(std::unique_ptr<Expr> obj, Var var)
-    : Expr(ExprKind::Variable),
+    : Expr(ExprKind::Get),
       obj(std::move(obj)), name(std::move(var)) {
   }
 
@@ -271,7 +295,7 @@ public:
   std::unique_ptr<Expr> value;
 
   explicit SetExpr(std::unique_ptr<Expr> obj, Var var, std::unique_ptr<Expr> value)
-    : Expr(ExprKind::Variable),
+    : Expr(ExprKind::Set),
       obj(std::move(obj)), var(std::move(var)), value(std::move(value)) {
   }
 
