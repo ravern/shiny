@@ -1,12 +1,13 @@
-#ifndef SHINY_H
-#define SHINY_H
+#pragma once
 
 #include <string>
 
-namespace Shiny {
-  void run(const std::string& source);
-  void runFile(const std::string& filename);
-  void repl();
-}
+#include "runtime/value.h"
 
-#endif //SHINY_H
+namespace Shiny {
+
+Value run(const std::string& source);
+Value runFile(const std::string& filename);
+void repl();
+
+}  // namespace Shiny

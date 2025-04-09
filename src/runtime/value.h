@@ -1,7 +1,6 @@
 #pragma once
 
 #include <bit>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 
@@ -88,6 +87,8 @@ class Value {
   ObjectPtr<T> asObject() {
     return ObjectPtr<T>(getPayload());
   }
+
+  uint64_t __getRaw() const { return raw; }
 
   Value& operator=(const Value& other);
   Value& operator=(Value&& other);

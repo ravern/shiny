@@ -13,6 +13,7 @@ add_executable(tests
         type_equality_test.cpp
         union_find_test.cpp
         parser_test.cpp
+        e2e_test.cpp
 )
 target_include_directories(
         tests

@@ -5,7 +5,6 @@
 
 #include <fstream>
 
-#include "debug.h"
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
 #include "frontend/parser.h"
@@ -24,13 +23,13 @@ class Interpreter {
  public:
   Interpreter() : vm(interner) {}
 
-  void run(const std::string& source) {
+  Value run(const std::string& source) {
     try {
       Scanner scanner(source);
       Parser parser(scanner, interner);
       auto ast = parser.parse();
       if (parser.hadError()) {
-        return;
+        return Value::NIL;
       }
 
       TypeInference inference(interner, &inferenceGlobals);
@@ -48,12 +47,16 @@ class Interpreter {
 
       // print the result of the last statement
       std::cout << valueToString(result, interner) << std::endl;
+
+      return result;
     } catch (const Error& e) {
       std::cout << "Error: " << e.what() << std::endl;
+
+      return Value::NIL;
     }
   }
 
-  void runFile(const std::string& filename) {
+  Value runFile(const std::string& filename) {
     std::ifstream file(filename);
     if (!file) {
       std::cerr << "Could not open file: " << filename << std::endl;
@@ -61,7 +64,7 @@ class Interpreter {
     }
     std::string input((std::istreambuf_iterator<char>(file)),
                       std::istreambuf_iterator<char>());
-    run(input);
+    return run(input);
   }
 
   void repl() {
@@ -107,18 +110,19 @@ class Interpreter {
 };
 
 // Public API
-void run(const std::string& source) {
+Value run(const std::string& source) {
   Interpreter interpreter;
-  interpreter.run(source);
+  return interpreter.run(source);
 }
 
-void runFile(const std::string& filename) {
+Value runFile(const std::string& filename) {
   Interpreter interpreter;
-  interpreter.runFile(filename);
+  return interpreter.runFile(filename);
 }
 
 void repl() {
   Interpreter interpreter;
   interpreter.repl();
 }
+
 }  // namespace Shiny
