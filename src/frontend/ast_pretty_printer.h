@@ -63,7 +63,7 @@ public:
     printPrefix();
     std::cout << "Function" << std::endl;
     isLastChild.push_back(false);
-    visit(*expr.function);
+    visit(*expr.callee);
     isLastChild.pop_back();
     isLastChild.pop_back();
 

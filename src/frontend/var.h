@@ -8,13 +8,13 @@
 using VariableName = SymbolId;
 
 struct Var {
-  VariableName name;
+  SymbolId name;
   std::optional<std::shared_ptr<Type>> type;
 
-  explicit Var(VariableName name)
+  explicit Var(SymbolId name)
     : name(name), type(std::nullopt) {}
 
-  Var(VariableName name, std::optional<std::shared_ptr<Type>> type)
+  Var(SymbolId name, std::optional<std::shared_ptr<Type>> type)
     : name(name), type(std::move(type)) {}
 
   bool operator==(const Var& other) const {

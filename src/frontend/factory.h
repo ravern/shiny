@@ -153,6 +153,14 @@ namespace T {
     return std::make_shared<FunctionType>(std::move(parameters),
                                           std::move(returnType));
   }
+
+  inline std::shared_ptr<Type> Class(
+      VariableName name,
+      std::unordered_map<VariableName, std::shared_ptr<Type>> fields,
+      std::unordered_map<VariableName, std::shared_ptr<Type>> methods) {
+    return std::make_shared<ClassType>(name, std::move(fields),
+                                       std::move(methods));
+  }
 } // namespace T
 
 #endif // FACTORY_H
