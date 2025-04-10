@@ -508,15 +508,12 @@ private:
         auto _classType = lookup(instanceType.klass->name);
         assert(_classType->kind == TypeKind::Class);
         auto& classType = static_cast<ClassType&>(*_classType);
-        if (classType.fields.contains(get.name.name)) {
-          auto field = classType.fields[get.name.name];
-          return field;
+
+        auto member = classType.getMemberType(get.name.name);
+        if (!member.has_value()) {
+          throw TypeError("Field or method does not exist");
         }
-        if (classType.methods.contains(get.name.name)) {
-          auto method = classType.methods[get.name.name];
-          return method;
-        }
-        throw TypeError("Field or method does not exist");
+        return member.value();
       }
       case ExprKind::Set: {
         throw std::runtime_error("Not implemented");
@@ -602,23 +599,24 @@ private:
 
         beginScope();
 
-        std::unordered_map<VariableName, std::shared_ptr<Type>> fieldTypes;
+        std::vector<std::pair<SymbolId, std::shared_ptr<Type>>> members;
+
         for (auto& decl : classStmt.declarations) {
           infer(*decl);
           auto type = lookup(decl->var);
-          fieldTypes[decl->var.name] = type;
+          members.push_back({decl->var.name, type});
         }
 
         std::unordered_map<VariableName, std::shared_ptr<Type>> methodTypes;
         for (auto& method : classStmt.methods) {
           infer(*method);
           auto type = lookup(method->name);
-          methodTypes[method->name.name] = type;
+          members.push_back({method->name.name, type});
         }
 
         endScope();
 
-        auto type = T::Class(classStmt.name.name, fieldTypes, methodTypes);
+        auto type = std::make_shared<ClassType>(classStmt.name.name, std::move(members));
         define(classStmt.name, type);
         return true;
       }

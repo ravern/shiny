@@ -140,21 +140,18 @@ public:
 class ClassType : public Type {
 public:
   SymbolId name;
-  std::unordered_map<SymbolId, std::shared_ptr<Type>> fields;
-  std::unordered_map<SymbolId, std::shared_ptr<Type>> methods;
+  std::vector<std::pair<SymbolId, std::shared_ptr<Type>>> members;
 
   ClassType(SymbolId name,
-            std::unordered_map<SymbolId, std::shared_ptr<Type>> fields = {},
-            std::unordered_map<SymbolId, std::shared_ptr<Type>> methods = {})
+            std::vector<std::pair<SymbolId, std::shared_ptr<Type>>> members)
     : Type(TypeKind::Class),
       name(name),
-      fields(std::move(fields)),
-      methods(std::move(methods)) {}
+      members(std::move(members)) {}
 
-  // do i need to compare structurally? how is this used?
   bool operator==(const Type &other) const override {
     if (other.kind != TypeKind::Class) return false;
     const auto &o = static_cast<const ClassType&>(other);
+    // TODO: compare members
     return name == o.name;
   }
 
@@ -163,8 +160,29 @@ public:
     return "Class " + std::to_string(name);
   }
 
-  int getMemberIndex(SymbolId name) {
-    
+  int getMemberIndex(const SymbolId name) const {
+    for (int i = 0; i < members.size(); ++i) {
+      if (members[i].first == name) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  std::optional<std::shared_ptr<Type>> getMemberType(const SymbolId name) {
+    for (int i = 0; i < members.size(); ++i) {
+      if (members[i].first == name) {
+        return members[i].second;
+      }
+    }
+    return std::nullopt;
+  }
+
+  std::optional<std::shared_ptr<Type>> getMemberType(int index) {
+    if (index < 0 || index >= members.size()) {
+      return std::nullopt;
+    }
+    return members[index].second;
   }
 };
 

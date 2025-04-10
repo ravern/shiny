@@ -239,21 +239,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     assert(objType->kind == TypeKind::Instance);
     auto& instanceType = static_cast<InstanceType&>(*objType);
     auto& klass= instanceType.klass;
-
-    //
-    // auto name = instanceType.className;
-    // int index = resolveLocal(name);
-    // if (index != -1) {
-    //   emit(Opcode::LOAD, index);
-    // } else if ((index = resolveUpvalue(name)) != -1) {
-    //   emit(Opcode::UPVALUE_LOAD, index);
-    // } else if ((index = resolveGlobal(name)) != -1) {
-    //   emit(Opcode::GLOBAL_LOAD, index);
-    // } else {
-    //   throw std::runtime_error(
-    //       "Variable name not found");  // this should never happen; caught by
-    //   // TypeInference
-    // }
+    auto memberIndex = klass->getMemberIndex(expr.name.name);
+    assert(memberIndex != -1);
+    auto memberType = klass->getMemberType(memberIndex).value();
+    emit(Opcode::MEMBER_GET, memberIndex);
+    return memberType;
   }
 
   std::shared_ptr<Type> visitSetExpr(SetExpr& expr) {
@@ -311,6 +301,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     auto name = stmt.name.name;
     declare(name);
     define(name);
+
+    // FIXME: idk what to do
+    // ClassObject classObject(nullptr, name);
+    // uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(function)));
+
     emit(Opcode::CLASS); // need some kinda index?
   }
 
