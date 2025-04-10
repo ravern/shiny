@@ -74,7 +74,9 @@ private:
       case TypeKind::Void:
       case TypeKind::Integer:
       case TypeKind::Double:
-      case TypeKind::Boolean: {
+      case TypeKind::Boolean:
+      case TypeKind::Class:
+      case TypeKind::Instance: {
         return ty;
       }
       case TypeKind::Variable: {
@@ -124,7 +126,7 @@ private:
       }
       case ExprKind::Apply: {
         auto& applyExpr = static_cast<ApplyExpr&>(expr);
-        substituteAst(*applyExpr.function);
+        substituteAst(*applyExpr.callee);
         for (auto& arg : applyExpr.arguments) {
           substituteAst(*arg);
         }
@@ -369,26 +371,37 @@ private:
       }
       case ExprKind::Apply: {
         auto& applyExpr = static_cast<ApplyExpr&>(expr);
-        auto function = infer(*applyExpr.function);
-        // I'm pretty sure infer() will resolve to a concrete function type...
-        assert(function->kind == TypeKind::Function);
-        auto& functionType = static_cast<FunctionType&>(*function);
+        auto calleeType = infer(*applyExpr.callee);
+        // I'm pretty sure infer() will resolve to a concrete type...
+        if (calleeType->kind == TypeKind::Function) {
+          auto& functionType = static_cast<FunctionType&>(*calleeType);
 
-        if (applyExpr.arguments.size() != functionType.parameters.size()) {
-          throw TypeError("Invalid arguments count");
-        }
-        for (unsigned int i = 0; i < applyExpr.arguments.size(); i++) {
-          auto& arg = applyExpr.arguments[i];
-          auto argType = infer(*arg);
-          auto& paramType = functionType.parameters[i];
-          assert(argType->kind != TypeKind::Variable);
-          assert(paramType->kind != TypeKind::Variable);
-          if (*argType != *paramType) {
-            throw TypeError("Invalid argument type");
+          if (applyExpr.arguments.size() != functionType.parameters.size()) {
+            throw TypeError("Invalid arguments count");
           }
+          for (unsigned int i = 0; i < applyExpr.arguments.size(); i++) {
+            auto& arg = applyExpr.arguments[i];
+            auto argType = infer(*arg);
+            auto& paramType = functionType.parameters[i];
+            assert(argType->kind != TypeKind::Variable);
+            assert(paramType->kind != TypeKind::Variable);
+            if (*argType != *paramType) {
+              throw TypeError("Invalid argument type");
+            }
+          }
+
+          return functionType.ret;
         }
 
-        return functionType.ret;
+        if (calleeType->kind == TypeKind::Class) {
+          auto& classType = static_cast<ClassType&>(*calleeType);
+          if (applyExpr.arguments.size() != 0) {
+            throw TypeError("Constructor arguments must be empty (for now).");
+          }
+          return std::make_shared<InstanceType>(classType.name);
+        }
+
+        throw TypeError("Target is not callable.");
       }
       case ExprKind::Binary: {
         auto& binaryExpr = static_cast<BinaryExpr&>(expr);
@@ -474,6 +487,40 @@ private:
             throw std::runtime_error("Unknown UnaryOperator");
         }
       }
+      case ExprKind::Assign: {
+        auto& assignExpr = static_cast<AssignExpr&>(expr);
+        auto varType = lookup(assignExpr.var);
+        auto exprType = infer(*assignExpr.expression);
+        assert(varType->kind != TypeKind::Variable);
+        assert(exprType->kind != TypeKind::Variable);
+        // uh I sure hope they are not functions with TypeKind::Variable
+        if (*varType != *exprType) {
+          throw TypeError("Cannot assign a different type");
+        }
+        assignExpr.var.type = varType;
+        return T::Void();
+      }
+      case ExprKind::Get: {
+        auto& get = static_cast<GetExpr&>(expr);
+        auto _instanceType = infer(*get.obj);
+        assert(_instanceType->kind == TypeKind::Instance);
+        auto& instanceType = static_cast<InstanceType&>(*_instanceType);
+        auto _classType = lookup(instanceType.className);
+        assert(_classType->kind == TypeKind::Class);
+        auto& classType = static_cast<ClassType&>(*_classType);
+        if (classType.fields.contains(get.name.name)) {
+          auto field = classType.fields[get.name.name];
+          return field;
+        }
+        if (classType.methods.contains(get.name.name)) {
+          auto method = classType.methods[get.name.name];
+          return method;
+        }
+        throw TypeError("Field or method does not exist");
+      }
+      case ExprKind::Set: {
+        throw std::runtime_error("Not implemented");
+      }
       default:
         throw std::runtime_error("Unknown ExprKind");
     }
@@ -552,16 +599,27 @@ private:
       case StmtKind::Class: {
         auto& classStmt = static_cast<ClassStmt&>(stmt);
         declare(classStmt.name);
+
         beginScope();
-        // TODO: hold off on declaring until all declarations are defined so
-        // they don't reference each other
+
+        std::unordered_map<VariableName, std::shared_ptr<Type>> fieldTypes;
         for (auto& decl : classStmt.declarations) {
           infer(*decl);
+          auto type = lookup(decl->var);
+          fieldTypes[decl->var.name] = type;
         }
+
+        std::unordered_map<VariableName, std::shared_ptr<Type>> methodTypes;
         for (auto& method : classStmt.methods) {
           infer(*method);
+          auto type = lookup(method->name);
+          methodTypes[method->name.name] = type;
         }
+
         endScope();
+
+        auto type = T::Class(classStmt.name.name, fieldTypes, methodTypes);
+        define(classStmt.name, type);
         return true;
       }
       case StmtKind::Expr: {
@@ -653,9 +711,9 @@ private:
     env[var.name] = std::move(type);
   }
 
-  std::shared_ptr<Type> lookup(const Var& var) {
+  std::shared_ptr<Type> lookup(const VariableName& name) {
     for (auto & env : std::ranges::reverse_view(envs)) {
-      auto found = env.find(var.name);
+      auto found = env.find(name);
       if (found != env.end()) {
         auto typeOpt = found->second;
         if (typeOpt.has_value()) {
@@ -664,7 +722,11 @@ private:
         throw ReferenceError("Circular reference");
       }
     }
-    throw ReferenceError("Cannot find '" + stringInterner.get(var.name) + "' in scope");
+    throw ReferenceError("Cannot find '" + stringInterner.get(name) + "' in scope");
+  }
+
+  std::shared_ptr<Type> lookup(const Var& var) {
+    return lookup(var.name);
   }
 };
 

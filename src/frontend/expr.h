@@ -123,12 +123,12 @@ public:
 
 class ApplyExpr : public Expr {
 public:
-  std::unique_ptr<Expr> function;
+  std::unique_ptr<Expr> callee;
   std::vector<std::unique_ptr<Expr>> arguments;
 
   ApplyExpr(std::unique_ptr<Expr> function, std::vector<std::unique_ptr<Expr>> arguments)
     : Expr(ExprKind::Apply),
-      function(std::move(function)),
+      callee(std::move(function)),
       arguments(std::move(arguments)) {
   }
 
@@ -138,7 +138,7 @@ public:
     }
     const auto& otherApply = static_cast<const ApplyExpr&>(other);
 
-    if (*function != *otherApply.function) return false;
+    if (*callee != *otherApply.callee) return false;
 
     if (arguments.size() != otherApply.arguments.size()) {
       return false;

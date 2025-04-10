@@ -132,15 +132,29 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
-    auto _functionType = visit(*expr.function);
-    auto functionType = static_cast<FunctionType&>(*_functionType);
+    auto calleeType = visit(*expr.callee);
+    assert(calleeType->kind == TypeKind::Function || calleeType->kind == TypeKind::Class);
 
-    for (auto& arg : expr.arguments) {
-      visit(*arg);
+    if (calleeType->kind == TypeKind::Function) {
+      auto& functionType = static_cast<FunctionType&>(*calleeType);
+
+      for (auto& arg : expr.arguments) {
+        visit(*arg);
+      }
+      emit(Opcode::CALL, static_cast<uint32_t>(expr.arguments.size()));
+
+      return functionType.ret;
     }
-    emit(Opcode::CALL, static_cast<uint32_t>(expr.arguments.size()));
 
-    return functionType.ret;
+    if (calleeType->kind == TypeKind::Class) {
+      auto& classType = static_cast<ClassType&>(*calleeType);
+      assert(expr.arguments.size() == 0);
+      emit(Opcode::CALL, 0);
+
+      return std::make_shared<InstanceType>(classType.name);
+    }
+
+    throw std::runtime_error("Target is not callable.");
   }
 
   std::shared_ptr<Type> visitBinaryExpr(BinaryExpr& expr) {
@@ -208,15 +222,16 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitAssignExpr(AssignExpr& expr) {
-
+    throw std::runtime_error("Not implemented");
   }
 
   std::shared_ptr<Type> visitGetExpr(GetExpr& expr) {
+    visit(*expr.obj);
 
   }
 
   std::shared_ptr<Type> visitSetExpr(SetExpr& expr) {
-
+    throw std::runtime_error("Not implemented");
   }
 
   // Statement visitors
