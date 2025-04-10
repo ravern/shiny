@@ -162,21 +162,25 @@ public:
   std::string toString() const override {
     return "Class " + std::to_string(name);
   }
+
+  int getMemberIndex(SymbolId name) {
+    
+  }
 };
 
 class InstanceType : public Type {
 public:
-  SymbolId className;
-  InstanceType(SymbolId className) : Type(TypeKind::Instance), className(className) {}
+  std::shared_ptr<ClassType> klass;
+  InstanceType(std::shared_ptr<ClassType> klass) : Type(TypeKind::Instance), klass(std::move(klass)) {}
 
   bool operator==(const Type &other) const override {
     if (other.kind != TypeKind::Instance) return false;
     const auto &o = static_cast<const InstanceType&>(other);
-    return className == o.className;
+    return klass == o.klass;
   }
 
   std::string toString() const override {
-    return "Instance " + std::to_string(className);
+    return "Instance " + std::to_string(klass->name);
   }
 };
 

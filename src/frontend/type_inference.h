@@ -394,11 +394,11 @@ private:
         }
 
         if (calleeType->kind == TypeKind::Class) {
-          auto& classType = static_cast<ClassType&>(*calleeType);
+          std::shared_ptr<ClassType> classType = static_pointer_cast<ClassType>(calleeType);
           if (applyExpr.arguments.size() != 0) {
             throw TypeError("Constructor arguments must be empty (for now).");
           }
-          return std::make_shared<InstanceType>(classType.name);
+          return std::make_shared<InstanceType>(classType);
         }
 
         throw TypeError("Target is not callable.");
@@ -505,7 +505,7 @@ private:
         auto _instanceType = infer(*get.obj);
         assert(_instanceType->kind == TypeKind::Instance);
         auto& instanceType = static_cast<InstanceType&>(*_instanceType);
-        auto _classType = lookup(instanceType.className);
+        auto _classType = lookup(instanceType.klass->name);
         assert(_classType->kind == TypeKind::Class);
         auto& classType = static_cast<ClassType&>(*_classType);
         if (classType.fields.contains(get.name.name)) {

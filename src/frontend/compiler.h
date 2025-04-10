@@ -156,11 +156,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
 
     if (calleeType->kind == TypeKind::Class) {
-      auto& classType = static_cast<ClassType&>(*calleeType);
+      std::shared_ptr<ClassType> classType = static_pointer_cast<ClassType>(calleeType);
       assert(expr.arguments.size() == 0);
       emit(Opcode::CALL, 0);
 
-      return std::make_shared<InstanceType>(classType.name);
+      return std::make_shared<InstanceType>(classType);
     }
 
     throw std::runtime_error("Target is not callable.");
@@ -235,8 +235,25 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitGetExpr(GetExpr& expr) {
-    visit(*expr.obj);
+    auto objType = visit(*expr.obj);
+    assert(objType->kind == TypeKind::Instance);
+    auto& instanceType = static_cast<InstanceType&>(*objType);
+    auto& klass= instanceType.klass;
 
+    //
+    // auto name = instanceType.className;
+    // int index = resolveLocal(name);
+    // if (index != -1) {
+    //   emit(Opcode::LOAD, index);
+    // } else if ((index = resolveUpvalue(name)) != -1) {
+    //   emit(Opcode::UPVALUE_LOAD, index);
+    // } else if ((index = resolveGlobal(name)) != -1) {
+    //   emit(Opcode::GLOBAL_LOAD, index);
+    // } else {
+    //   throw std::runtime_error(
+    //       "Variable name not found");  // this should never happen; caught by
+    //   // TypeInference
+    // }
   }
 
   std::shared_ptr<Type> visitSetExpr(SetExpr& expr) {
