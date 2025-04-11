@@ -316,6 +316,35 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     beginScope();
 
+    auto initializerName = stringInterner.intern("init");
+    auto initializerVar = Var(initializerName);
+
+    // create a fake initializer function to compile and emit
+    // TODO: just parse the damn thing and not do this
+    std::vector<std::unique_ptr<Stmt>> declarations;
+    declarations.reserve(stmt.declarations.size());
+    // move stmt.declarations into declarations
+    for (auto& decl : stmt.declarations) {
+      declarations.push_back(std::move(decl));
+    }
+
+    auto blockStmt = std::make_unique<BlockStmt>(std::move(declarations));
+    std::vector<Var> params;
+    auto initializerAst = std::make_unique<FunctionStmt>(initializerVar, params, T::Void(), std::move(blockStmt));
+
+    Compiler compiler(this, FunctionKind::Method, globals, stringInterner, *initializerAst);
+    auto initializer = compiler.compile();
+
+    uint32_t initializerIndex = addConstant(ObjectPtr<FunctionObject>(std::move(initializer)));
+    emit(Opcode::METHOD, initializerIndex);
+
+    // restore stmt.declarations
+    stmt.declarations.clear();
+    for (auto& stmtPtr : initializerAst->body->statements) {
+      auto* declarePtr = static_cast<DeclareStmt*>(stmtPtr.release()); // safe since we know they were DeclareStmt
+      stmt.declarations.push_back(std::unique_ptr<DeclareStmt>(declarePtr));
+    }
+
     for (auto& decl : stmt.declarations) {
       declare(decl->var.name);
       define(decl->var.name);
