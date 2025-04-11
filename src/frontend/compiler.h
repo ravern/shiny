@@ -311,10 +311,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declare(name);
     define(name);
 
-    // @ravern pls fix
-    // uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(std::nullopt, name))));
-    // emit(Opcode::CLASS, constantIndex);
-    emit(Opcode::CLASS);
+    uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(name))));
+    emit(Opcode::CLASS, constantIndex);
 
     beginScope();
 
