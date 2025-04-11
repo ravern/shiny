@@ -455,6 +455,22 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
 
+        // Opcodes for classes
+        // case Opcode::CLASS: {
+        //   stack.push_back(Value(std::move(ObjectPtr<ClassObject>())));
+        //   break;
+        // }
+        // case Opcode::METHOD: {
+        //   auto klass = stack.back().asObject<ClassObject>();
+
+        //   ObjectPtr<FunctionObject> newFunction =
+        //       chunk->constants[operand].asObject<FunctionObject>();
+
+        //   stack.push_back(Value(std::move(ObjectPtr<ClosureObject>(
+        //       std::move(ClosureObject(newFunction, std::move(upvalues)))))));
+        //   break;
+        // }
+
       default:
         throw std::runtime_error("Unimplemented opcode");
     }

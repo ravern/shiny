@@ -88,13 +88,15 @@ class MethodObject {
 
 class ClassObject {
  public:
-  ClassObject(ObjectPtr<ClassObject> superklass,
-              std::optional<SymbolId> name = std::nullopt);
+  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name);
+  ClassObject(SymbolId name);
+  ClassObject();
   ~ClassObject() = default;
 
  private:
-  ObjectPtr<ClassObject> superklass;
+  std::optional<ObjectPtr<ClassObject>> superklass;
   std::optional<SymbolId> name;
+  std::vector<ObjectPtr<FunctionObject>> classFunctions;
   std::vector<ObjectPtr<FunctionObject>> methods;
 };
 
@@ -153,7 +155,9 @@ class Object {
     return false;
   }
 
-  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject> data;
+  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject,
+               MethodObject, ClassObject, InstanceObject>
+      data;
   int strongCount;
   int weakCount;
 };

@@ -109,3 +109,17 @@ ObjectPtr<UpvalueObject>& ClosureObject::getUpvalue(int index) {
 const ObjectPtr<UpvalueObject>& ClosureObject::getUpvalue(int index) const {
   return upvalues[index];
 }
+
+MethodObject::MethodObject(ObjectPtr<FunctionObject> function, Value self)
+    : function(std::move(function)), self(std::move(self)) {}
+
+ClassObject::ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name)
+    : superklass(std::move(superklass)), name(name) {}
+
+ClassObject::ClassObject(SymbolId name)
+    : superklass(std::nullopt), name(name) {}
+
+ClassObject::ClassObject() : superklass(std::nullopt), name(std::nullopt) {}
+
+InstanceObject::InstanceObject(ObjectPtr<ClassObject> klass)
+    : klass(std::move(klass)) {}
