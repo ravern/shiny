@@ -161,6 +161,7 @@ std::string instructionToString(size_t offset, Instruction instr,
     case Opcode::GLOBAL_STORE:
     case Opcode::MEMBER_GET:
     case Opcode::MEMBER_SET:
+    case Opcode::CLASS:
     case Opcode::METHOD: {
       ss << operand;
       break;

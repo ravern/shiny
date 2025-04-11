@@ -7,7 +7,7 @@
 #include "../runtime/value.h"
 
 struct Frame {
-  ObjectPtr<ClosureObject> closure;
+  Value function;
   int ip;
   int bp;
 };
@@ -26,9 +26,10 @@ class VM {
   void closeUpvalues(int upTillStackSlot);
   void printStack();
   void printUpvalueStack();
+  ObjectPtr<FunctionObject> getFunctionFromValue(Value value);
 
   StringInterner& stringInterner;
-  ObjectPtr<ClosureObject> closure;
+  Value currentFunction;
   int ip;
   int bp;
   Chunk* chunk;

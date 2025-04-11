@@ -113,6 +113,16 @@ const ObjectPtr<UpvalueObject>& ClosureObject::getUpvalue(int index) const {
 MethodObject::MethodObject(ObjectPtr<FunctionObject> function, Value self)
     : function(std::move(function)), self(std::move(self)) {}
 
+ObjectPtr<FunctionObject>& MethodObject::getFunction() { return function; }
+
+const ObjectPtr<FunctionObject>& MethodObject::getFunction() const {
+  return function;
+}
+
+Value& MethodObject::getSelf() { return self; }
+
+const Value& MethodObject::getSelf() const { return self; }
+
 ClassObject::ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name)
     : superklass(std::move(superklass)), name(name) {}
 
@@ -121,5 +131,34 @@ ClassObject::ClassObject(SymbolId name)
 
 ClassObject::ClassObject() : superklass(std::nullopt), name(std::nullopt) {}
 
+void ClassObject::addMethod(ObjectPtr<FunctionObject> method) {
+  methods.push_back(std::move(method));
+}
+
+std::optional<ObjectPtr<ClassObject>>& ClassObject::getSuperklass() {
+  return superklass;
+}
+
+const std::optional<ObjectPtr<ClassObject>>& ClassObject::getSuperklass()
+    const {
+  return superklass;
+}
+
+std::optional<SymbolId>& ClassObject::getName() { return name; }
+
+const std::optional<SymbolId>& ClassObject::getName() const { return name; }
+
+std::vector<ObjectPtr<FunctionObject>>& ClassObject::getMethods() {
+  return methods;
+}
+
+const std::vector<ObjectPtr<FunctionObject>>& ClassObject::getMethods() const {
+  return methods;
+}
+
 InstanceObject::InstanceObject(ObjectPtr<ClassObject> klass)
     : klass(std::move(klass)) {}
+
+std::vector<Value>& InstanceObject::getMembers() { return members; }
+
+const std::vector<Value>& InstanceObject::getMembers() const { return members; }

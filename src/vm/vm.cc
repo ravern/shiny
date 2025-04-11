@@ -15,10 +15,10 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
   std::cout << "==== Starting evaluation ====" << std::endl;
 
   // Initialize the VM state for a new evaluation
-  closure = ObjectPtr<ClosureObject>(ClosureObject(std::move(function)));
+  currentFunction = ObjectPtr<ClosureObject>(std::move(function));
   ip = 0;
   bp = 0;
-  chunk = &closure->getFunction()->getChunk();
+  chunk = &getFunctionFromValue(currentFunction)->getChunk();
   lastPoppedValue = Value::NIL;
 
   while (true) {
@@ -375,7 +375,8 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         printStack();
 
         // Print entering frame
-        std::optional<SymbolId> name = closure->getFunction()->getName();
+        std::optional<SymbolId> name =
+            getFunctionFromValue(callStack.back().function)->getName();
         std::cout << "== Entering "
                   << (name.has_value() ? stringInterner.get(name.value())
                                        : "<anonymous>")
@@ -405,7 +406,8 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         printStack();
 
         // Print leaving frame
-        std::optional<SymbolId> name = closure->getFunction()->getName();
+        std::optional<SymbolId> name =
+            getFunctionFromValue(callStack.back().function)->getName();
         std::cout << "== Leaving "
                   << (name.has_value() ? stringInterner.get(name.value())
                                        : "<anonymous>")
@@ -439,13 +441,15 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       // Opcodes for upvalue manipulation
       case Opcode::UPVALUE_LOAD: {
         int upvalueIndex = operand;
-        auto upvalue = closure->getUpvalue(upvalueIndex);
+        auto upvalue =
+            currentFunction.asObject<ClosureObject>()->getUpvalue(upvalueIndex);
         stack.push_back(upvalue->getValue(stack));
         break;
       }
       case Opcode::UPVALUE_STORE: {
         int upvalueIndex = operand;
-        auto upvalue = closure->getUpvalue(upvalueIndex);
+        auto upvalue =
+            currentFunction.asObject<ClosureObject>()->getUpvalue(upvalueIndex);
         upvalue->setValue(stack.back(), stack);
         stack.pop_back();
         break;
@@ -455,21 +459,41 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
 
-        // Opcodes for classes
-        // case Opcode::CLASS: {
-        //   stack.push_back(Value(std::move(ObjectPtr<ClassObject>())));
-        //   break;
-        // }
-        // case Opcode::METHOD: {
-        //   auto klass = stack.back().asObject<ClassObject>();
+      // Opcodes for classes
+      case Opcode::CLASS: {
+        ObjectPtr<ClassObject> newClass =
+            chunk->constants[operand].asObject<ClassObject>();
+        stack.push_back(Value(std::move(newClass)));
+        break;
+      }
+      case Opcode::METHOD: {
+        auto klass = stack.back().asObject<ClassObject>();
+        ObjectPtr<FunctionObject> newFunction =
+            chunk->constants[operand].asObject<FunctionObject>();
+        klass->addMethod(std::move(newFunction));
+        break;
+      }
 
-        //   ObjectPtr<FunctionObject> newFunction =
-        //       chunk->constants[operand].asObject<FunctionObject>();
-
-        //   stack.push_back(Value(std::move(ObjectPtr<ClosureObject>(
-        //       std::move(ClosureObject(newFunction, std::move(upvalues)))))));
-        //   break;
-        // }
+      // Opcodes for instances
+      case Opcode::SELF: {
+        if (!currentFunction.isObject<MethodObject>()) {
+          throw std::runtime_error("Tried to access self when not in method");
+        }
+        auto method = currentFunction.asObject<MethodObject>();
+        stack.push_back(method->getSelf());
+        break;
+      }
+      case Opcode::MEMBER_GET: {
+        auto instance = stack.back().asObject<InstanceObject>();
+        stack.push_back(instance->getMembers()[operand]);
+        break;
+      }
+      case Opcode::MEMBER_SET: {
+        auto instance = stack.back().asObject<InstanceObject>();
+        instance->getMembers()[operand] = stack.back();
+        stack.pop_back();
+        break;
+      }
 
       default:
         throw std::runtime_error("Unimplemented opcode");
@@ -481,21 +505,21 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
 
 void VM::pushFrame(int arity) {
   int newBp = stack.size() - arity - 1;
-  auto newClosure = stack[newBp].asObject<ClosureObject>();
-  callStack.push_back({closure, ip, bp});
-  closure = newClosure;
+  Value newFunction = stack[newBp];
+  callStack.push_back({currentFunction, ip, bp});
+  currentFunction = newFunction;
   ip = 0;
   bp = newBp;
-  chunk = &closure->getFunction()->getChunk();
+  chunk = &getFunctionFromValue(currentFunction)->getChunk();
 }
 
 void VM::popFrame() {
   Frame frame = callStack.back();
   callStack.pop_back();
-  closure = frame.closure;
+  currentFunction = frame.function;
   ip = frame.ip;
   bp = frame.bp;
-  chunk = &closure->getFunction()->getChunk();
+  chunk = &getFunctionFromValue(currentFunction)->getChunk();
 }
 
 ObjectPtr<UpvalueObject> VM::captureUpvalue(Upvalue functionUpvalue) {
@@ -504,7 +528,7 @@ ObjectPtr<UpvalueObject> VM::captureUpvalue(Upvalue functionUpvalue) {
     auto upvalue = pushUpvalue(stackSlot);
     return upvalue;
   } else {
-    auto parentClosure = callStack.back().closure;
+    auto parentClosure = callStack.back().function.asObject<ClosureObject>();
     auto upvalue = parentClosure->getUpvalue(functionUpvalue.index);
     return upvalue;
   }
@@ -567,5 +591,16 @@ void VM::printUpvalueStack() {
     for (auto& upvalue : upvalues) {
       std::cout << valueToString(Value(upvalue), stringInterner) << std::endl;
     }
+  }
+}
+
+ObjectPtr<FunctionObject> VM::getFunctionFromValue(Value value) {
+  if (value.isObject<ClosureObject>()) {
+    return value.asObject<ClosureObject>()->getFunction();
+  } else if (value.isObject<MethodObject>()) {
+    return value.asObject<MethodObject>()->getFunction();
+  } else {
+    throw std::runtime_error(
+        "Tried to access function from non-callable value");
   }
 }

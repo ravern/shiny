@@ -81,6 +81,11 @@ class MethodObject {
   MethodObject(ObjectPtr<FunctionObject> function, Value self);
   ~MethodObject() = default;
 
+  ObjectPtr<FunctionObject>& getFunction();
+  const ObjectPtr<FunctionObject>& getFunction() const;
+  Value& getSelf();
+  const Value& getSelf() const;
+
  private:
   ObjectPtr<FunctionObject> function;
   Value self;
@@ -92,6 +97,14 @@ class ClassObject {
   ClassObject(SymbolId name);
   ClassObject();
   ~ClassObject() = default;
+
+  void addMethod(ObjectPtr<FunctionObject> method);
+  std::optional<ObjectPtr<ClassObject>>& getSuperklass();
+  const std::optional<ObjectPtr<ClassObject>>& getSuperklass() const;
+  std::optional<SymbolId>& getName();
+  const std::optional<SymbolId>& getName() const;
+  std::vector<ObjectPtr<FunctionObject>>& getMethods();
+  const std::vector<ObjectPtr<FunctionObject>>& getMethods() const;
 
  private:
   std::optional<ObjectPtr<ClassObject>> superklass;
@@ -105,9 +118,12 @@ class InstanceObject {
   InstanceObject(ObjectPtr<ClassObject> klass);
   ~InstanceObject() = default;
 
+  std::vector<Value>& getMembers();
+  const std::vector<Value>& getMembers() const;
+
  private:
   ObjectPtr<ClassObject> klass;
-  std::vector<Value> fields;
+  std::vector<Value> members;
 };
 
 class ArrayObject {

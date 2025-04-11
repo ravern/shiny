@@ -67,6 +67,7 @@ enum class Opcode : uint8_t {
   CLASS = 0x90,
   METHOD = 0x91,  // operand: index of method
 
+  SELF = 0xa0,
   MEMBER_GET = 0xa1,  // operand: index of member
   MEMBER_SET = 0xa2,  // operand: index of member
 };
