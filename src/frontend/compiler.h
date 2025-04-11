@@ -313,10 +313,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   void visitClassStmt(ClassStmt& stmt) {
     auto name = stmt.name.name;
     declare(name);
-    define(name);
+    defineWithoutEmitIfGlobal(name);  // allow recursion
 
     uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(name))));
     emit(Opcode::CLASS, constantIndex);
+    define(name, false);
 
     beginScope();
 
