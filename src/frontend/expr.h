@@ -12,6 +12,7 @@ enum class ExprKind {
   Double,
   Boolean,
   Variable,
+  Self,
   Apply,
   Binary,
   Unary,
@@ -118,6 +119,19 @@ public:
     }
     const auto& otherVar = static_cast<const VariableExpr&>(other);
     return var == otherVar.var;
+  }
+};
+
+class SelfExpr : public Expr {
+public:
+  explicit SelfExpr()
+    : Expr(ExprKind::Self) {}
+
+  bool operator==(const Expr& other) const override {
+    if (kind != other.kind) {
+      return false;
+    }
+    return true;
   }
 };
 

@@ -55,6 +55,11 @@ public:
               << std::endl;
   }
 
+  void visitSelfExpr(SelfExpr& expr) {
+    printPrefix();
+    std::cout << "self" << std::endl;
+  }
+
   void visitApplyExpr(ApplyExpr& expr) {
     printPrefix();
     std::cout << "Apply" << std::endl;

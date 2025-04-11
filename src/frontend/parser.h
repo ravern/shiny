@@ -366,6 +366,9 @@ class Parser {
     if (match(TOKEN_FALSE)) {
       return E::Bool(false);
     }
+    if (match(TOKEN_SELF)) {
+      return std::make_unique<SelfExpr>();
+    }
     if (match(TOKEN_IDENTIFIER)) {
       auto symbol = strings.intern(std::string(previous.lexeme));
       return E::Var(symbol);

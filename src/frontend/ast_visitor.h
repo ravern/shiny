@@ -21,6 +21,8 @@ public:
         return static_cast<ImplClass*>(this)->visitBoolExpr(static_cast<BoolExpr&>(expr), std::forward<Args>(args)...);
       case ExprKind::Variable:
         return static_cast<ImplClass*>(this)->visitVariableExpr(static_cast<VariableExpr&>(expr), std::forward<Args>(args)...);
+      case ExprKind::Self:
+        return static_cast<ImplClass*>(this)->visitSelfExpr(static_cast<SelfExpr&>(expr), std::forward<Args>(args)...);
       case ExprKind::Apply:
         return static_cast<ImplClass*>(this)->visitApplyExpr(static_cast<ApplyExpr&>(expr), std::forward<Args>(args)...);
       case ExprKind::Binary:

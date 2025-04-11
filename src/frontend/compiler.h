@@ -141,6 +141,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     return expr.var.type.value();
   }
 
+  std::shared_ptr<Type> visitSelfExpr(SelfExpr& expr) {
+    throw std::runtime_error("yo");
+  }
+
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
     auto calleeType = visit(*expr.callee);
     assert(calleeType->kind == TypeKind::Function || calleeType->kind == TypeKind::Class);
