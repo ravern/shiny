@@ -56,7 +56,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         emit(Opcode::HALT);
         break;
       }
-      case FunctionKind::Function: {
+      case FunctionKind::Function:
+      case FunctionKind::Method: {
         assert(ast.kind == StmtKind::Function);
         auto& functionStmt = static_cast<FunctionStmt&>(ast);
         if (functionStmt.params.size() > 255) {
@@ -281,20 +282,28 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
   }
 
-  void visitFunctionStmt(FunctionStmt& stmt) {
+  void visitFunction(FunctionStmt& stmt, FunctionKind kind) {
     auto name = stmt.name.name;
     declare(name);
     defineWithoutEmitIfGlobal(name);  // allow recursion
 
-    auto compiler = Compiler(this, FunctionKind::Function, globals,
+    auto compiler = Compiler(this, kind, globals,
                              stringInterner, stmt, name);
     auto function = compiler.compile();
 
     uint32_t constantIndex =
         addConstant(ObjectPtr<FunctionObject>(std::move(function)));
-    emit(Opcode::CLOSURE, constantIndex);
+    if (kind == FunctionKind::Function) {
+      emit(Opcode::CLOSURE, constantIndex);
+    } else {
+      emit(Opcode::METHOD, constantIndex);
+    }
 
     define(name, false);
+  }
+
+  void visitFunctionStmt(FunctionStmt& stmt) {
+    visitFunction(stmt, FunctionKind::Function);
   }
 
   void visitClassStmt(ClassStmt& stmt) {
@@ -302,11 +311,23 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declare(name);
     define(name);
 
-    // FIXME: idk what to do
-    // ClassObject classObject(nullptr, name);
-    // uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(function)));
+    // @ravern pls fix
+    // uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(std::nullopt, name))));
+    // emit(Opcode::CLASS, constantIndex);
+    emit(Opcode::CLASS);
 
-    emit(Opcode::CLASS); // need some kinda index?
+    beginScope();
+
+    for (auto& decl : stmt.declarations) {
+      declare(decl->var.name);
+      define(decl->var.name);
+    }
+
+    for (auto& method : stmt.methods) {
+      visitFunction(*method, FunctionKind::Method);
+    }
+
+    endScope();
   }
 
   void visitExprStmt(ExprStmt& stmt) {

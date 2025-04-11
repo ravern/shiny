@@ -16,5 +16,3 @@ class Foo {
     }
 }
 
-var foo = Foo()
-var num = foo.getInteger()
