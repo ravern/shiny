@@ -125,6 +125,9 @@ private:
         varExpr.var.type = substitutedType;
         break;
       }
+      case ExprKind::Self: {
+        break;
+      }
       case ExprKind::Apply: {
         auto& applyExpr = static_cast<ApplyExpr&>(expr);
         substituteAst(*applyExpr.callee);
@@ -142,6 +145,11 @@ private:
       case ExprKind::Unary: {
         auto& unaryExpr = static_cast<UnaryExpr&>(expr);
         substituteAst(*unaryExpr.operand);
+        break;
+      }
+      case ExprKind::Get: {
+        auto& getExpr = static_cast<GetExpr&>(expr);
+        substituteAst(*getExpr.obj);
         break;
       }
       default:
