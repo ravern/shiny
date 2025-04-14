@@ -334,8 +334,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(name))));
     emit(Opcode::CLASS, constantIndex);
-    define(name, false);
 
+    // emit METHODs (which keep the class on the stack)
     beginScope();
 
     auto initializerName = stringInterner.intern("init");
@@ -372,6 +372,9 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
 
     endScope();
+
+    // store and pop off the stack
+    define(name, false);
   }
 
   void visitExprStmt(ExprStmt& stmt) {
