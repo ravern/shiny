@@ -63,17 +63,14 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
         }
-        // Why do we do this? I forgot
-        // auto name = stringInterner.intern("__function__");
-        // declare(name);
-        // define(name);
 
         if (kind == FunctionKind::Method) {
           auto self = stringInterner.intern("self");
           auto local = Local(self, 0, false);
           locals.push_back(local);
         } else {
-          auto local = Local(0, 0, false); // 0 is reserved for empty strings
+          auto name = stringInterner.intern("__function__");
+          auto local = Local(name, 0, false);
           locals.push_back(local);
         }
 
