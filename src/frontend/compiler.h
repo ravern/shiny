@@ -368,7 +368,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       visitFunction(*method, FunctionKind::Method);
     }
 
-    endScope();
+    // don't emit POP because METHODs don't load anything onto the stack
+    endScope(false);
 
     // store and pop off the stack
     define(name, false);
@@ -446,14 +447,16 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   void beginScope() { scopeDepth++; }
 
-  void endScope() {
+  void endScope(bool emitPop = true) {
     scopeDepth--;
     while (locals.size() > 0 && locals.back().depth > scopeDepth) {
-      auto& local = locals.back();
-      if (local.isCaptured) {
-        emit(Opcode::UPVALUE_CLOSE);
-      } else {
-        emit(Opcode::POP);
+      if (emitPop) {
+        auto& local = locals.back();
+        if (local.isCaptured) {
+          emit(Opcode::UPVALUE_CLOSE);
+        } else {
+          emit(Opcode::POP);
+        }
       }
       locals.pop_back();
     }
