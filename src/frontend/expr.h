@@ -124,6 +124,8 @@ public:
 
 class SelfExpr : public Expr {
 public:
+  std::optional<std::shared_ptr<Type>> type;
+
   explicit SelfExpr()
     : Expr(ExprKind::Self) {}
 

@@ -413,10 +413,13 @@ private:
         throw TypeError("Target is not callable.");
       }
       case ExprKind::Self: {
+        auto& selfExpr = static_cast<SelfExpr&>(expr);
         if (enclosingClassType == nullptr) {
           throw TypeError("Cannot reference self outside of a class");
         }
-        return std::make_shared<InstanceType>(enclosingClassType);
+        auto type = std::make_shared<InstanceType>(enclosingClassType);
+        selfExpr.type = type;
+        return type;
       }
       case ExprKind::Binary: {
         auto& binaryExpr = static_cast<BinaryExpr&>(expr);

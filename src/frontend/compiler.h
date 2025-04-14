@@ -63,9 +63,20 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
         }
-        auto name = stringInterner.intern("__function__");
-        declare(name);
-        define(name);
+        // Why do we do this? I forgot
+        // auto name = stringInterner.intern("__function__");
+        // declare(name);
+        // define(name);
+
+        if (kind == FunctionKind::Method) {
+          auto self = stringInterner.intern("self");
+          auto local = Local(self, 0, false);
+          locals.push_back(local);
+        } else {
+          auto local = Local(0, 0, false); // 0 is reserved for empty strings
+          locals.push_back(local);
+        }
+
         for (int i = 0; i < functionStmt.params.size(); ++i) {
           auto& param = functionStmt.params.at(i);
           declare(param.name);
@@ -125,6 +136,18 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   std::shared_ptr<Type> visitVariableExpr(VariableExpr& expr) {
     auto name = expr.var.name;
+    resolve(name);
+    return expr.var.type.value();
+  }
+
+  std::shared_ptr<Type> visitSelfExpr(SelfExpr& expr) {
+    SymbolId name = stringInterner.intern("self");
+    resolve(name);
+    assert(expr.type.has_value());
+    return expr.type.value();
+  }
+
+  void resolve(SymbolId name) {
     int index = resolveLocal(name);
     if (index != -1) {
       emit(Opcode::LOAD, index);
@@ -137,12 +160,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
           "Variable name not found");  // this should never happen; caught by
                                        // TypeInference
     }
-
-    return expr.var.type.value();
-  }
-
-  std::shared_ptr<Type> visitSelfExpr(SelfExpr& expr) {
-    throw std::runtime_error("yo");
   }
 
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
@@ -350,11 +367,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       stmt.declarations.push_back(std::unique_ptr<DeclareStmt>(declarePtr));
     }
 
-    for (auto& decl : stmt.declarations) {
-      declare(decl->var.name);
-      define(decl->var.name);
-    }
-
     for (auto& method : stmt.methods) {
       visitFunction(*method, FunctionKind::Method);
     }
@@ -456,7 +468,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       enclosingCompiler->locals[local].isCaptured = true;
       return function.addUpvalue(Upvalue{local, true});
     }
-
     int upvalue = enclosingCompiler->resolveUpvalue(name);
     if (upvalue != -1) {
       return function.addUpvalue(Upvalue{upvalue, false});
