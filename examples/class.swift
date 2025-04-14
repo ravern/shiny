@@ -10,13 +10,8 @@ class Foo {
     func getDouble() -> Double {
         return self.double
     }
-
-    func getBoolean() -> Bool {
-        return self.boolean
-    }
 }
 
-func add(x: Int, y: Int) -> Int {
-   return x + y
-}
+var f = Foo()
+var x = f.getDouble()
 
