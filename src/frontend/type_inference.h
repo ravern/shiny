@@ -37,6 +37,7 @@ class TypeInference {
   std::set<TypeVar> unbounded;
   // to check return type
   FunctionStmt* enclosingFunction = nullptr;
+  std::shared_ptr<ClassType> enclosingClassType = nullptr;
   UnionFind unionFind;
   StringInterner& stringInterner;
 
@@ -403,6 +404,12 @@ private:
 
         throw TypeError("Target is not callable.");
       }
+      case ExprKind::Self: {
+        if (enclosingClassType == nullptr) {
+          throw TypeError("Cannot reference self outside of a class");
+        }
+        return std::make_shared<InstanceType>(enclosingClassType);
+      }
       case ExprKind::Binary: {
         auto& binaryExpr = static_cast<BinaryExpr&>(expr);
         auto leftType = infer(*binaryExpr.left);
@@ -595,29 +602,67 @@ private:
       }
       case StmtKind::Class: {
         auto& classStmt = static_cast<ClassStmt&>(stmt);
-        declare(classStmt.name);
+        auto type = std::make_shared<ClassType>(classStmt.name.name, std::vector<std::pair<SymbolId, std::shared_ptr<Type>>>{});
 
+        auto prevEnclosingClassType = enclosingClassType;
+        enclosingClassType = type;
+
+        // 1st pass to build the class's type
         beginScope();
-
+        declare(classStmt.name);
+        // infer declaration members
         std::vector<std::pair<SymbolId, std::shared_ptr<Type>>> members;
-
         for (auto& decl : classStmt.declarations) {
           infer(*decl);
-          auto type = lookup(decl->var);
-          members.push_back({decl->var.name, type});
+          auto declType = lookup(decl->var);
+          members.emplace_back(decl->var.name, declType);
         }
 
-        std::unordered_map<VariableName, std::shared_ptr<Type>> methodTypes;
+        // allow methods to refer to the class
+        define(classStmt.name, type);
+
+        // infer method members' signatures (not bodies)
         for (auto& method : classStmt.methods) {
-          infer(*method);
-          auto type = lookup(method->name);
-          members.push_back({method->name.name, type});
+          // declare and define method types early
+          declare(method->name);
+
+          std::vector<std::shared_ptr<Type>> paramTypes;
+          for (auto& param : method->params) {
+            paramTypes.push_back(param.type.value());
+          }
+
+          auto methodType = T::Function(paramTypes, method->returnType);
+          define(method->name, methodType);
+
+          members.push_back({method->name.name, methodType});
         }
 
         endScope();
 
-        auto type = std::make_shared<ClassType>(classStmt.name.name, std::move(members));
+        type->members = std::move(members);
+
+        // 2nd pass: infer with the refined class type
+        beginScope();
+        declare(classStmt.name);
+        // add declarations to env
+        // this will succeed since it was done before
+        for (auto& decl : classStmt.declarations) {
+          infer(*decl);
+        }
+        // allow method bodies to refer to the class
         define(classStmt.name, type);
+        // infer method bodies
+        for (auto& method : classStmt.methods) {
+          infer(*method);
+        }
+        endScope();
+
+        enclosingClassType = prevEnclosingClassType;
+
+        // update env in the main scope
+        declare(classStmt.name);
+        define(classStmt.name, type);
+
         return true;
       }
       case StmtKind::Expr: {

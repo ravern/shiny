@@ -4,15 +4,15 @@ class Foo {
     var boolean = false
 
     func getInteger() -> Int {
-        return integer
+        return self.integer
     }
 
     func getDouble() -> Double {
-        return double
+        return self.double
     }
 
     func getBoolean() -> Bool {
-        return boolean
+        return self.boolean
     }
 }
 
