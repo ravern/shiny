@@ -629,6 +629,9 @@ private:
           members.emplace_back(decl->var.name, declType);
         }
 
+        auto initName = stringInterner.intern("__init__");
+        members.emplace_back(initName, T::Void());
+
         // allow methods to refer to the class
         define(classStmt.name, type);
 

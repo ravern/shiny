@@ -58,7 +58,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       }
       case FunctionKind::Function:
       case FunctionKind::Method: {
-        assert(ast.kind == StmtKind::Function);
         auto& functionStmt = static_cast<FunctionStmt&>(ast);
         if (functionStmt.params.size() > 255) {
           throw std::runtime_error("Too many function parameters");
@@ -177,6 +176,12 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     if (calleeType->kind == TypeKind::Class) {
       std::shared_ptr<ClassType> classType = static_pointer_cast<ClassType>(calleeType);
       assert(expr.arguments.size() == 0);
+
+      SymbolId initSymbol = stringInterner.intern("__init__");
+      int methodIndex = classType->getMemberIndex(initSymbol);
+      assert(methodIndex != -1);
+      emit(Opcode::MEMBER_GET, methodIndex);
+
       emit(Opcode::CALL, 0);
 
       return std::make_shared<InstanceType>(classType);
@@ -300,28 +305,20 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
   }
 
-  void visitFunction(FunctionStmt& stmt, FunctionKind kind) {
+  void visitFunctionStmt(FunctionStmt& stmt) {
     auto name = stmt.name.name;
     declare(name);
     defineWithoutEmitIfGlobal(name);  // allow recursion
 
-    auto compiler = Compiler(this, kind, globals,
+    auto compiler = Compiler(this, FunctionKind::Function, globals,
                              stringInterner, stmt, name);
     auto function = compiler.compile();
 
     uint32_t constantIndex =
         addConstant(ObjectPtr<FunctionObject>(std::move(function)));
-    if (kind == FunctionKind::Function) {
-      emit(Opcode::CLOSURE, constantIndex);
-    } else {
-      emit(Opcode::METHOD, constantIndex);
-    }
+    emit(Opcode::CLOSURE, constantIndex);
 
     define(name, false);
-  }
-
-  void visitFunctionStmt(FunctionStmt& stmt) {
-    visitFunction(stmt, FunctionKind::Function);
   }
 
   void visitClassStmt(ClassStmt& stmt) {
@@ -329,13 +326,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declare(name);
     defineWithoutEmitIfGlobal(name);  // allow recursion
 
-    uint32_t constantIndex = addConstant(ObjectPtr<ClassObject>(std::move(ClassObject(name))));
-    emit(Opcode::CLASS, constantIndex);
+    std::vector<Value> members;
 
-    // emit METHODs (which keep the class on the stack)
+    for (auto& decl : stmt.declarations) {
+      members.push_back(Value::NIL);
+    }
+
     beginScope();
 
-    auto initializerName = stringInterner.intern("init");
+    auto initializerName = stringInterner.intern("__init__");
     auto initializerVar = Var(initializerName);
 
     // create a fake initializer function to compile and emit
@@ -351,11 +350,11 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     std::vector<Var> params;
     auto initializerAst = std::make_unique<FunctionStmt>(initializerVar, params, T::Void(), std::move(blockStmt));
 
-    Compiler compiler(this, FunctionKind::Method, globals, stringInterner, *initializerAst);
+    Compiler compiler(this, FunctionKind::Method, globals, stringInterner, *initializerAst, initializerName);
     auto initializer = compiler.compile();
 
-    uint32_t initializerIndex = addConstant(ObjectPtr<FunctionObject>(std::move(initializer)));
-    emit(Opcode::METHOD, initializerIndex);
+    auto initFunctionPtr = ObjectPtr<FunctionObject>(std::move(initializer));
+    members.emplace_back(initFunctionPtr);
 
     // restore stmt.declarations
     stmt.declarations.clear();
@@ -365,11 +364,18 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
 
     for (auto& method : stmt.methods) {
-      visitFunction(*method, FunctionKind::Method);
+      auto compiler = Compiler(this, FunctionKind::Method, globals,
+                         stringInterner, *method, method->name.name);
+      auto function = compiler.compile();
+      auto functionPtr = ObjectPtr<FunctionObject>(std::move(function));
+      members.emplace_back(functionPtr);
     }
 
-    // don't emit POP because METHODs don't load anything onto the stack
-    endScope(false);
+    endScope();
+
+    auto klassObj = ObjectPtr<ClassObject>(std::move(ClassObject(name, std::move(members))));
+    uint32_t constantIndex = addConstant(std::move(klassObj));
+    emit(Opcode::CLASS, constantIndex);
 
     // store and pop off the stack
     define(name, false);
@@ -447,16 +453,14 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   void beginScope() { scopeDepth++; }
 
-  void endScope(bool emitPop = true) {
+  void endScope() {
     scopeDepth--;
     while (locals.size() > 0 && locals.back().depth > scopeDepth) {
-      if (emitPop) {
-        auto& local = locals.back();
-        if (local.isCaptured) {
-          emit(Opcode::UPVALUE_CLOSE);
-        } else {
-          emit(Opcode::POP);
-        }
+      auto& local = locals.back();
+      if (local.isCaptured) {
+        emit(Opcode::UPVALUE_CLOSE);
+      } else {
+        emit(Opcode::POP);
       }
       locals.pop_back();
     }

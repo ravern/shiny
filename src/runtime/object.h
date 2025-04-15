@@ -143,9 +143,9 @@ class MethodObject {
 
 class ClassObject {
  public:
-  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name)
-      : superklass(std::move(superklass)), name(name) {}
-  ClassObject(SymbolId name) : superklass(std::nullopt), name(name) {}
+  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name, std::vector<Value> members)
+      : superklass(std::move(superklass)), name(name), members(std::move(members)) {}
+  ClassObject(SymbolId name, std::vector<Value> members) : superklass(std::nullopt), name(name), members(std::move(members)) {}
   ClassObject() : superklass(std::nullopt), name(std::nullopt) {}
 
   std::optional<ObjectPtr<ClassObject>>& getSuperklass() { return superklass; }
