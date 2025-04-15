@@ -274,6 +274,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
                                        // TypeInference
     }
 
+    // push a dummy value that expression statement will pop
+    // this is needed for correctness but I forgot why exactly :/
+    emit(Opcode::NIL);
+
     return T::Void();
   }
 

@@ -9,6 +9,9 @@ class E2ETest : public ::testing::Test {
  protected:
   std::unordered_map<std::string, Value> testCases = {
       {"adder.swift", Value(static_cast<int64_t>(3))},
+      {"assign.swift", Value(static_cast<int64_t>(2))},
+      {"assign_in_func.swift", Value(static_cast<int64_t>(2))},
+      {"assign_in_closure.swift", Value(static_cast<int64_t>(2))},
       {"factorial.swift", Value(static_cast<int64_t>(120))},
       {"boolean.swift", Value::TRUE},
       {"nested_func.swift", Value(static_cast<int64_t>(25))},
