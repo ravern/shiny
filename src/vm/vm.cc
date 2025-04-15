@@ -541,15 +541,14 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
 }
 
 void VM::callClass() {
-  auto klass = stack.back().asObject<ClassObject>();
-  ObjectPtr<InstanceObject> instance(std::move(klass));
-  for (int i = 0; i < klass->getMembers().size(); i++) {
-    auto member = klass->getMembers()[i];
+  ObjectPtr<InstanceObject> instance(
+      InstanceObject(stack.back().asObject<ClassObject>()));
+  for (int i = 0; i < instance->getClass()->getMembers().size(); i++) {
+    auto member = instance->getClass()->getMembers()[i];
     if (member.isObject<FunctionObject>()) {
       instance->setMember(
-          i, Value(std::move(ObjectPtr<MethodObject>(std::move(
-                 MethodObject(std::move(member.asObject<FunctionObject>()),
-                              std::move(instance)))))));
+          i, Value(std::move(ObjectPtr<MethodObject>(std::move(MethodObject(
+                 std::move(member.asObject<FunctionObject>()), instance))))));
     }
   }
   stack.pop_back();

@@ -177,12 +177,15 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       std::shared_ptr<ClassType> classType = static_pointer_cast<ClassType>(calleeType);
       assert(expr.arguments.size() == 0);
 
+      emit(Opcode::CALL, 0);
+
       SymbolId initSymbol = stringInterner.intern("__init__");
       int methodIndex = classType->getMemberIndex(initSymbol);
       assert(methodIndex != -1);
       emit(Opcode::MEMBER_GET, methodIndex);
 
       emit(Opcode::CALL, 0);
+      emit(Opcode::POP);
 
       return std::make_shared<InstanceType>(classType);
     }

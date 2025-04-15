@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <optional>
 #include <unordered_map>
 #include <variant>
@@ -143,9 +144,13 @@ class MethodObject {
 
 class ClassObject {
  public:
-  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name, std::vector<Value> members)
-      : superklass(std::move(superklass)), name(name), members(std::move(members)) {}
-  ClassObject(SymbolId name, std::vector<Value> members) : superklass(std::nullopt), name(name), members(std::move(members)) {}
+  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name,
+              std::vector<Value> members)
+      : superklass(std::move(superklass)),
+        name(name),
+        members(std::move(members)) {}
+  ClassObject(SymbolId name, std::vector<Value> members)
+      : superklass(std::nullopt), name(name), members(std::move(members)) {}
   ClassObject() : superklass(std::nullopt), name(std::nullopt) {}
 
   std::optional<ObjectPtr<ClassObject>>& getSuperklass() { return superklass; }
@@ -167,7 +172,7 @@ class ClassObject {
 class InstanceObject {
  public:
   InstanceObject(ObjectPtr<ClassObject> klass) : klass(std::move(klass)) {
-    members.resize(klass->getMembers().size());
+    members.resize(this->klass->getMembers().size());
   }
 
   ObjectPtr<ClassObject>& getClass() { return klass; }

@@ -205,6 +205,12 @@ std::string valueToString(const Value& value,
                ? stringInterner.get(closure->getFunction()->getName().value())
                : "<anonymous>");
     ss << "@" << closure.__getPtr();
+  } else if (value.isObject<MethodObject>()) {
+    auto method = value.asObject<MethodObject>();
+    ss << (method->getFunction()->getName().has_value()
+               ? stringInterner.get(method->getFunction()->getName().value())
+               : "<anonymous>");
+    ss << "@" << method.__getPtr();
   } else if (value.isObject<UpvalueObject>()) {
     auto upvalue = value.asObject<UpvalueObject>();
     ss << "(" << (upvalue->isOpen() ? "open" : "closed") << ","
@@ -239,6 +245,19 @@ std::string valueToString(const Value& value,
   } else if (value.isObject<StringObject>()) {
     auto string = value.asObject<StringObject>();
     ss << "\"" << string->getData() << "\"";
+  } else if (value.isObject<InstanceObject>()) {
+    auto instance = value.asObject<InstanceObject>();
+    ss << (instance->getClass()->getName().has_value()
+               ? stringInterner.get(instance->getClass()->getName().value())
+               : "<anonymous>")
+       << "@" << instance.__getPtr();
+  } else if (value.isObject<ClassObject>()) {
+    auto klass = value.asObject<ClassObject>();
+    ss << "class(";
+    ss << (klass->getName().has_value()
+               ? stringInterner.get(klass->getName().value())
+               : "<anonymous>")
+       << ")@" << klass.__getPtr();
   } else {
     throw std::runtime_error("Tried to convert unknown value type to string");
   }

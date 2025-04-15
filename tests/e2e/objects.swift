@@ -1,10 +1,10 @@
 class Foo {
     var x = 3
 
-    func bar() -> Int {
-        return x + 5
+    func bar(y: Int) -> Int {
+        return self.x + y
     }
 }
 
 var foo = Foo()
-foo.bar()
+foo.bar(5)
