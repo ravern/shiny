@@ -62,6 +62,11 @@ ObjectPtr<T>& ObjectPtr<T>::operator=(ObjectPtr&& other) {
 }
 
 template <typename T>
+const T* ObjectPtr<T>::operator->() const {
+  return ptr->get<T>();
+}
+
+template <typename T>
 T* ObjectPtr<T>::operator->() {
   return ptr->get<T>();
 }
@@ -102,5 +107,6 @@ template class ObjectPtr<ArrayObject>;
 template class ObjectPtr<MethodObject>;
 template class ObjectPtr<ClassObject>;
 template class ObjectPtr<InstanceObject>;
-// template class ObjectPtr<DictObject>;
+template class ObjectPtr<DictObject>;
+template class ObjectPtr<StringObject>;
 template class ObjectPtr<std::monostate>;

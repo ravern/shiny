@@ -18,6 +18,7 @@ class ObjectPtr {
 
   ObjectPtr& operator=(const ObjectPtr& other);
   ObjectPtr& operator=(ObjectPtr&& other);
+  const T* operator->() const;
   T* operator->();
 
   Object* __getPtr() const;

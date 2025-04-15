@@ -17,16 +17,19 @@ struct Upvalue {
 
 class FunctionObject {
  public:
-  FunctionObject(std::optional<SymbolId> name = std::nullopt);
+  FunctionObject(std::optional<SymbolId> name = std::nullopt) : name(name) {}
   ~FunctionObject() = default;
 
-  std::optional<SymbolId> getName() const;
-  Chunk& getChunk();
-  const Chunk& getChunk() const;
-  std::vector<Upvalue>& getUpvalues();
-  const std::vector<Upvalue>& getUpvalues() const;
+  std::optional<SymbolId> getName() const { return name; }
+  Chunk& getChunk() { return chunk; }
+  const Chunk& getChunk() const { return chunk; }
+  std::vector<Upvalue>& getUpvalues() { return upvalues; }
+  const std::vector<Upvalue>& getUpvalues() const { return upvalues; }
 
-  int addUpvalue(Upvalue upvalue);
+  int addUpvalue(Upvalue upvalue) {
+    upvalues.push_back(upvalue);
+    return upvalues.size() - 1;
+  }
 
  private:
   Chunk chunk;
@@ -36,19 +39,61 @@ class FunctionObject {
 
 class UpvalueObject {
  public:
-  UpvalueObject(int stackSlot);
-  UpvalueObject(int stackSlot, ObjectPtr<UpvalueObject> next);
-  ~UpvalueObject() = default;
+  UpvalueObject(int stackSlot)
+      : closedValue(Value::NIL),
+        stackSlot(stackSlot),
+        open(true),
+        next(std::nullopt) {}
+  UpvalueObject(int stackSlot, ObjectPtr<UpvalueObject> next)
+      : closedValue(Value::NIL),
+        stackSlot(stackSlot),
+        open(true),
+        next(std::move(next)) {}
 
-  void close(const std::vector<Value>& stack);
+  bool isOpen() const { return open; }
 
-  bool isOpen() const;
-  int getStackSlot() const;
-  Value getClosedValue() const;
-  Value getValue(const std::vector<Value>& stack) const;
-  void setValue(const Value& value, std::vector<Value>& stack);
-  std::optional<ObjectPtr<UpvalueObject>>& getNext();
-  const std::optional<ObjectPtr<UpvalueObject>>& getNext() const;
+  void close(const std::vector<Value>& stack) {
+    if (!open) {
+      throw std::runtime_error("Tried to close already closed upvalue");
+    }
+    closedValue = getValue(stack);
+    open = false;
+  }
+
+  int getStackSlot() const {
+    if (!open) {
+      throw std::runtime_error("Tried to get stack slot of open upvalue");
+    }
+    return stackSlot;
+  }
+
+  Value getClosedValue() const {
+    if (open) {
+      throw std::runtime_error("Tried to get closed value of open upvalue");
+    }
+    return closedValue;
+  }
+
+  Value getValue(const std::vector<Value>& stack) const {
+    if (open) {
+      return stack[stackSlot];
+    } else {
+      return closedValue;
+    }
+  }
+
+  void setValue(const Value& value, std::vector<Value>& stack) {
+    if (open) {
+      stack[stackSlot] = value;
+    } else {
+      closedValue = value;
+    }
+  }
+
+  std::optional<ObjectPtr<UpvalueObject>>& getNext() { return next; }
+  const std::optional<ObjectPtr<UpvalueObject>>& getNext() const {
+    return next;
+  }
 
  private:
   Value closedValue;
@@ -59,17 +104,22 @@ class UpvalueObject {
 
 class ClosureObject {
  public:
-  ClosureObject(ObjectPtr<FunctionObject> function);
+  ClosureObject(ObjectPtr<FunctionObject> function)
+      : function(std::move(function)) {}
   ClosureObject(ObjectPtr<FunctionObject> function,
-                std::vector<ObjectPtr<UpvalueObject>>&& upvalues);
-  ~ClosureObject() = default;
+                std::vector<ObjectPtr<UpvalueObject>>&& upvalues)
+      : function(std::move(function)), upvalues(std::move(upvalues)) {}
 
-  ObjectPtr<FunctionObject>& getFunction();
-  const ObjectPtr<FunctionObject>& getFunction() const;
-  std::vector<ObjectPtr<UpvalueObject>>& getUpvalues();
-  const std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() const;
-  ObjectPtr<UpvalueObject>& getUpvalue(int index);
-  const ObjectPtr<UpvalueObject>& getUpvalue(int index) const;
+  ObjectPtr<FunctionObject>& getFunction() { return function; }
+  const ObjectPtr<FunctionObject>& getFunction() const { return function; }
+  std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() { return upvalues; }
+  const std::vector<ObjectPtr<UpvalueObject>>& getUpvalues() const {
+    return upvalues;
+  }
+  ObjectPtr<UpvalueObject>& getUpvalue(int index) { return upvalues[index]; }
+  const ObjectPtr<UpvalueObject>& getUpvalue(int index) const {
+    return upvalues[index];
+  }
 
  private:
   ObjectPtr<FunctionObject> function;
@@ -78,13 +128,13 @@ class ClosureObject {
 
 class MethodObject {
  public:
-  MethodObject(ObjectPtr<FunctionObject> function, Value self);
-  ~MethodObject() = default;
+  MethodObject(ObjectPtr<FunctionObject> function, Value self)
+      : function(std::move(function)), self(std::move(self)) {}
 
-  ObjectPtr<FunctionObject>& getFunction();
-  const ObjectPtr<FunctionObject>& getFunction() const;
-  Value& getSelf();
-  const Value& getSelf() const;
+  ObjectPtr<FunctionObject>& getFunction() { return function; }
+  const ObjectPtr<FunctionObject>& getFunction() const { return function; }
+  Value& getSelf() { return self; }
+  const Value& getSelf() const { return self; }
 
  private:
   ObjectPtr<FunctionObject> function;
@@ -93,43 +143,60 @@ class MethodObject {
 
 class ClassObject {
  public:
-  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name);
-  ClassObject(SymbolId name);
-  ClassObject();
-  ~ClassObject() = default;
+  ClassObject(ObjectPtr<ClassObject> superklass, SymbolId name)
+      : superklass(std::move(superklass)), name(name) {}
+  ClassObject(SymbolId name) : superklass(std::nullopt), name(name) {}
+  ClassObject() : superklass(std::nullopt), name(std::nullopt) {}
 
-  void addMethod(ObjectPtr<FunctionObject> method);
-  std::optional<ObjectPtr<ClassObject>>& getSuperklass();
-  const std::optional<ObjectPtr<ClassObject>>& getSuperklass() const;
-  std::optional<SymbolId>& getName();
-  const std::optional<SymbolId>& getName() const;
-  std::vector<ObjectPtr<FunctionObject>>& getMethods();
-  const std::vector<ObjectPtr<FunctionObject>>& getMethods() const;
+  std::optional<ObjectPtr<ClassObject>>& getSuperklass() { return superklass; }
+  const std::optional<ObjectPtr<ClassObject>>& getSuperklass() const {
+    return superklass;
+  }
+  std::optional<SymbolId>& getName() { return name; }
+  const std::optional<SymbolId>& getName() const { return name; }
+  std::vector<Value>& getMembers() { return members; }
+  const std::vector<Value>& getMembers() const { return members; }
 
  private:
   std::optional<ObjectPtr<ClassObject>> superklass;
   std::optional<SymbolId> name;
-  std::vector<ObjectPtr<FunctionObject>> classFunctions;
-  std::vector<ObjectPtr<FunctionObject>> methods;
+  std::vector<Value> members;
 };
 
 class InstanceObject {
  public:
-  InstanceObject(ObjectPtr<ClassObject> klass);
-  ~InstanceObject() = default;
+  InstanceObject(ObjectPtr<ClassObject> klass) : klass(std::move(klass)) {}
 
-  std::vector<Value>& getMembers();
-  const std::vector<Value>& getMembers() const;
+  ObjectPtr<ClassObject>& getClass() { return klass; }
+  const ObjectPtr<ClassObject>& getClass() const { return klass; }
+  std::vector<Value>& getMembers() { return members; }
+  const std::vector<Value>& getMembers() const { return members; }
+  Value getMember(int index) const { return members[index]; }
+  void setMember(int index, Value newValue) { members[index] = newValue; }
 
  private:
   ObjectPtr<ClassObject> klass;
   std::vector<Value> members;
 };
 
+class StringObject {
+ public:
+  StringObject(std::string data) : data(std::move(data)) {}
+
+  std::string& getData() { return data; }
+  const std::string& getData() const { return data; }
+
+ private:
+  std::string data;
+};
+
 class ArrayObject {
  public:
   ArrayObject();
   ~ArrayObject() = default;
+
+  Value getValue(int index) const { return values[index]; }
+  void setValue(int index, Value newValue) { values[index] = newValue; }
 
  private:
   std::vector<Value> values;
@@ -139,6 +206,9 @@ class DictObject {
  public:
   DictObject();
   ~DictObject() = default;
+
+  Value getValue(const Value& key) const { return values.at(key); }
+  void setValue(const Value& key, Value newValue) { values[key] = newValue; }
 
  private:
   std::unordered_map<Value, Value> values;
@@ -171,8 +241,9 @@ class Object {
     return false;
   }
 
-  std::variant<FunctionObject, UpvalueObject, ClosureObject, ArrayObject,
-               MethodObject, ClassObject, InstanceObject>
+  std::variant<FunctionObject, UpvalueObject, ClosureObject, StringObject,
+               ArrayObject, DictObject, MethodObject, ClassObject,
+               InstanceObject>
       data;
   int strongCount;
   int weakCount;

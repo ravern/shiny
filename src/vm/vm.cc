@@ -60,6 +60,12 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         // stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
         break;
       }
+      case Opcode::CLASS: {
+        ObjectPtr<ClassObject> newClass =
+            chunk->constants[operand].asObject<ClassObject>();
+        stack.push_back(Value(std::move(newClass)));
+        break;
+      }
       case Opcode::CLOSURE: {
         ObjectPtr<FunctionObject> newFunction =
             chunk->constants[operand].asObject<FunctionObject>();
@@ -459,38 +465,15 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
 
-      // Opcodes for classes
-      case Opcode::CLASS: {
-        ObjectPtr<ClassObject> newClass =
-            chunk->constants[operand].asObject<ClassObject>();
-        stack.push_back(Value(std::move(newClass)));
-        break;
-      }
-      case Opcode::METHOD: {
-        auto klass = stack.back().asObject<ClassObject>();
-        ObjectPtr<FunctionObject> newFunction =
-            chunk->constants[operand].asObject<FunctionObject>();
-        klass->addMethod(std::move(newFunction));
-        break;
-      }
-
       // Opcodes for instances
-      case Opcode::SELF: {
-        if (!currentFunction.isObject<MethodObject>()) {
-          throw std::runtime_error("Tried to access self when not in method");
-        }
-        auto method = currentFunction.asObject<MethodObject>();
-        stack.push_back(method->getSelf());
-        break;
-      }
       case Opcode::MEMBER_GET: {
         auto instance = stack.back().asObject<InstanceObject>();
-        stack.push_back(instance->getMembers()[operand]);
+        stack.push_back(instance->getMember(operand));
         break;
       }
       case Opcode::MEMBER_SET: {
         auto instance = stack.back().asObject<InstanceObject>();
-        instance->getMembers()[operand] = stack.back();
+        instance->setMember(operand, stack.back());
         stack.pop_back();
         break;
       }

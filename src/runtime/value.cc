@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include "object.h"
 #include "object_ptr.h"
 
 const Value Value::NIL(uint64_t(MASK_NAN | TAG_NIL));
@@ -42,4 +43,11 @@ Value& Value::operator=(Value&& other) {
   raw = other.raw;
   other.raw = 0;
   return *this;
+}
+
+size_t std::hash<Value>::operator()(const Value& v) const {
+  if (v.isObject<StringObject>()) {
+    return std::hash<std::string>{}(v.asObject<StringObject>()->getData());
+  }
+  return std::hash<uint64_t>{}(v.__getRaw());
 }

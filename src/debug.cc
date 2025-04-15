@@ -96,8 +96,6 @@ std::string opcodeToString(Opcode opcode) {
       return "UPVALUE_CLOSE";
     case Opcode::CLASS:
       return "CLASS";
-    case Opcode::METHOD:
-      return "METHOD";
     case Opcode::MEMBER_GET:
       return "MEMBER_GET";
     case Opcode::MEMBER_SET:
@@ -161,8 +159,7 @@ std::string instructionToString(size_t offset, Instruction instr,
     case Opcode::GLOBAL_STORE:
     case Opcode::MEMBER_GET:
     case Opcode::MEMBER_SET:
-    case Opcode::CLASS:
-    case Opcode::METHOD: {
+    case Opcode::CLASS: {
       ss << operand;
       break;
     }

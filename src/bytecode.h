@@ -18,9 +18,10 @@ enum class Opcode : uint8_t {
   FALSE = 0x13,
   ARRAY = 0x14,
   DICT = 0x15,
-  CONST = 0x16,     // operand: index of constant
-  CLOSURE = 0x17,   // operand: index of function definition
-  BUILT_IN = 0x18,  // operand: index of built-in function
+  CLASS = 0x16,
+  CONST = 0x17,     // operand: index of class constant
+  CLOSURE = 0x18,   // operand: index of function constant
+  BUILT_IN = 0x19,  // operand: index of built-in function
 
   ADD = 0x31,  // operand: type of operands
   SUB = 0x32,  // operand: type of operands
@@ -64,12 +65,14 @@ enum class Opcode : uint8_t {
   UPVALUE_STORE = 0x81,  // operand: index of upvalue
   UPVALUE_CLOSE = 0x82,
 
-  CLASS = 0x90,
-  METHOD = 0x91,  // operand: index of method
+  DICT_GET = 0x90,
+  DICT_SET = 0x91,
 
-  SELF = 0xa0,
-  MEMBER_GET = 0xa1,  // operand: index of member
-  MEMBER_SET = 0xa2,  // operand: index of member
+  ARRAY_GET = 0xa0,
+  ARRAY_SET = 0xa1,
+
+  MEMBER_GET = 0xc0,  // operand: index of member
+  MEMBER_SET = 0xc1,  // operand: index of member
 };
 
 struct Chunk {

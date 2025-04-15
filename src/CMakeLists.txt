@@ -22,7 +22,6 @@ add_library(core
         frontend/var.h
         frontend/compiler.h
         runtime/value.cc
-        runtime/object.cc
         runtime/object_ptr.cc
         vm/vm.cc
         frontend/error.h

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bit>
+#include <functional>
 #include <stdexcept>
 #include <utility>
 
@@ -125,3 +126,10 @@ class Value {
 
   uint64_t raw;
 };
+
+namespace std {
+template <>
+struct hash<Value> {
+  size_t operator()(const Value& v) const;
+};
+}  // namespace std
