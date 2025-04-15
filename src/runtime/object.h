@@ -198,8 +198,11 @@ class ArrayObject {
   ArrayObject();
   ~ArrayObject() = default;
 
+  std::vector<Value>& getValues() { return values; }
+  const std::vector<Value>& getValues() const { return values; }
   Value get(int index) const { return values[index]; }
   void set(int index, Value newValue) { values[index] = newValue; }
+  void append(Value value) { values.push_back(value); }
 
  private:
   std::vector<Value> values;
@@ -210,6 +213,8 @@ class DictObject {
   DictObject();
   ~DictObject() = default;
 
+  std::unordered_map<Value, Value>& getValues() { return values; }
+  const std::unordered_map<Value, Value>& getValues() const { return values; }
   Value get(const Value& key) const { return values.at(key); }
   void set(const Value& key, Value newValue) { values[key] = newValue; }
 
@@ -219,13 +224,19 @@ class DictObject {
 
 class BuiltInObject {
  public:
-  BuiltInObject(std::function<Value(std::vector<Value>&)> function)
-      : function(std::move(function)) {}
+  BuiltInObject(
+      std::function<Value(std::vector<Value>&, StringInterner&)> function,
+      std::optional<std::string> name = std::nullopt)
+      : function(std::move(function)), name(std::move(name)) {}
 
-  Value call(std::vector<Value>& args) { return function(args); }
+  const std::optional<std::string>& getName() const { return name; }
+  Value call(std::vector<Value>& args, StringInterner& stringInterner) {
+    return function(args, stringInterner);
+  }
 
  private:
-  std::function<Value(std::vector<Value>&)> function;
+  std::optional<std::string> name;
+  std::function<Value(std::vector<Value>&, StringInterner&)> function;
 };
 
 class Object {
@@ -257,7 +268,7 @@ class Object {
 
   std::variant<FunctionObject, UpvalueObject, ClosureObject, StringObject,
                ArrayObject, DictObject, MethodObject, ClassObject,
-               InstanceObject>
+               InstanceObject, BuiltInObject>
       data;
   int strongCount;
   int weakCount;

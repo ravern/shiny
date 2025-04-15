@@ -215,7 +215,30 @@ std::string valueToString(const Value& value,
   } else if (value.isObject<ArrayObject>()) {
     auto array = value.asObject<ArrayObject>();
     ss << "[";
+    bool first = true;
+    for (const auto& value : array->getValues()) {
+      if (!first) {
+        ss << ", ";
+      }
+      ss << valueToString(value, stringInterner);
+    }
     ss << "]@" << array.__getPtr();
+  } else if (value.isObject<DictObject>()) {
+    auto dict = value.asObject<DictObject>();
+    ss << "[";
+    bool first = true;
+    for (const auto& [key, value] : dict->getValues()) {
+      if (!first) {
+        ss << ", ";
+      }
+      ss << valueToString(key, stringInterner) << ": "
+         << valueToString(value, stringInterner);
+      first = false;
+    }
+    ss << "]@" << dict.__getPtr();
+  } else if (value.isObject<StringObject>()) {
+    auto string = value.asObject<StringObject>();
+    ss << "\"" << string->getData() << "\"";
   } else {
     throw std::runtime_error("Tried to convert unknown value type to string");
   }

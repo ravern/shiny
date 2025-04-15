@@ -10,6 +10,8 @@
 #include "../runtime/value.h"
 
 VM::VM(StringInterner& stringInterner) : stringInterner(stringInterner) {}
+VM::VM(StringInterner& stringInterner, std::vector<Value>&& globals)
+    : stringInterner(stringInterner), globals(std::move(globals)) {}
 
 Value VM::evaluate(ObjectPtr<FunctionObject> function) {
   std::cout << "==== Starting evaluation ====" << std::endl;
@@ -57,7 +59,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::DICT: {
-        // stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
+        stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
         break;
       }
       case Opcode::CLASS: {
@@ -93,6 +95,10 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
           stack.push_back(a.asInt() + b.asInt());
         } else if (a.isDouble() && b.isDouble()) {
           stack.push_back(a.asDouble() + b.asDouble());
+        } else if (a.isObject<StringObject>() && b.isObject<StringObject>()) {
+          stack.push_back(Value(std::move(ObjectPtr<StringObject>(std::move(
+              StringObject(a.asObject<StringObject>()->getData() +
+                           b.asObject<StringObject>()->getData()))))));
         } else {
           throw std::runtime_error("Invalid operand types for add");
         }
