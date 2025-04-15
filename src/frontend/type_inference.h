@@ -147,6 +147,13 @@ private:
         substituteAst(*unaryExpr.operand);
         break;
       }
+      case ExprKind::Assign: {
+        auto& assignExpr = static_cast<AssignExpr&>(expr);
+        substituteAst(*assignExpr.expression);
+        auto varType = substitute(assignExpr.var.type.value());
+        assignExpr.var.type = varType;
+        break;
+      }
       case ExprKind::Get: {
         auto& getExpr = static_cast<GetExpr&>(expr);
         substituteAst(*getExpr.obj);
@@ -170,12 +177,6 @@ private:
         auto& declStmt = static_cast<DeclareStmt&>(stmt);
         auto varType = substitute(declStmt.var.type.value());
         declStmt.var.type = varType;
-        break;
-      }
-      case StmtKind::Assign: {
-        auto& assignStmt = static_cast<AssignStmt&>(stmt);
-        auto varType = substitute(assignStmt.var.type.value());
-        assignStmt.var.type = varType;
         break;
       }
       case StmtKind::Expr: {
@@ -516,6 +517,7 @@ private:
           throw TypeError("Cannot assign a different type");
         }
         assignExpr.var.type = varType;
+
         return T::Void();
       }
       case ExprKind::Get: {
@@ -567,13 +569,6 @@ private:
         auto exprType = infer(*declStmt.expression);
         define(declStmt.var, exprType);
         declStmt.var.type = exprType;
-        return true;
-      }
-      case StmtKind::Assign: {
-        auto& assignStmt = static_cast<AssignStmt&>(stmt);
-        auto varType = lookup(assignStmt.var);
-        check(*assignStmt.expression, varType);
-        assignStmt.var.type = varType;
         return true;
       }
       case StmtKind::Function: {
@@ -691,7 +686,10 @@ private:
         if (enclosingFunction == nullptr) {
           throw SyntaxError("Return invalid outside of a function");
         }
-        check(*returnStmt.expression, enclosingFunction->returnType);
+        auto exprType = infer(*returnStmt.expression);
+        if (*exprType != *enclosingFunction->returnType) {
+          throw TypeError("Invalid return type");
+        }
         return false;
       }
       case StmtKind::If: {

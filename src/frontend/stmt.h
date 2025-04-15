@@ -7,7 +7,6 @@
 enum class StmtKind {
   Block,
   Declare,
-  Assign,
   Function,
   Class,
   Expr,
@@ -76,28 +75,6 @@ public:
     const auto& otherDecl = static_cast<const DeclareStmt&>(other);
     return var == otherDecl.var &&
       *expression == *otherDecl.expression;
-  }
-};
-
-// TODO: remove this
-class AssignStmt : public Stmt {
-public:
-  Var var;
-  std::unique_ptr<Expr> expression;
-
-  AssignStmt(Var  var, std::unique_ptr<Expr> expression)
-    : Stmt(StmtKind::Assign),
-      var(std::move(var)),
-      expression(std::move(expression)) {}
-
-  bool operator==(const Stmt& other) const override {
-    if (kind != other.kind) {
-      return false;
-    }
-
-    const auto& otherAssign = static_cast<const AssignStmt&>(other);
-    return var == otherAssign.var &&
-      *expression == *otherAssign.expression;
   }
 };
 

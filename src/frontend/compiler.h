@@ -258,7 +258,23 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitAssignExpr(AssignExpr& expr) {
-    throw std::runtime_error("Not implemented");
+    visit(*expr.expression);
+
+    auto name = expr.var.name;
+    int index = resolveLocal(name);
+    if (index != -1) {
+      emit(Opcode::STORE, index);
+    } else if ((index = resolveUpvalue(name)) != -1) {
+      emit(Opcode::UPVALUE_STORE, index);
+    } else if ((index = resolveGlobal(name)) != -1) {
+      emit(Opcode::GLOBAL_STORE, index);
+    } else {
+      throw std::runtime_error(
+          "Variable name not found");  // this should never happen; caught by
+                                       // TypeInference
+    }
+
+    return T::Void();
   }
 
   std::shared_ptr<Type> visitGetExpr(GetExpr& expr) {
@@ -300,24 +316,6 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declare(stmt.var.name);
     visit(*stmt.expression);
     define(stmt.var.name);
-  }
-
-  void visitAssignStmt(AssignStmt& stmt) {
-    visit(*stmt.expression);
-
-    auto name = stmt.var.name;
-    int index = resolveLocal(name);
-    if (index != -1) {
-      emit(Opcode::STORE, index);
-    } else if ((index = resolveUpvalue(name) != -1)) {
-      emit(Opcode::UPVALUE_STORE, index);
-    } else if ((index = resolveGlobal(name) != -1)) {
-      emit(Opcode::GLOBAL_STORE, index);
-    } else {
-      throw std::runtime_error(
-          "Variable name not found");  // this should never happen; caught by
-                                       // TypeInference
-    }
   }
 
   void visitFunctionStmt(FunctionStmt& stmt) {

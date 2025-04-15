@@ -108,12 +108,6 @@ namespace S {
     return std::make_unique<DeclareStmt>(std::move(var), std::move(initializer));
   }
 
-  // Assign statement
-  inline std::unique_ptr<AssignStmt> Assign(VariableName name,
-                                            std::unique_ptr<Expr> value) {
-    return std::make_unique<AssignStmt>(::Var(name), std::move(value));
-  }
-
   // Function statement
   inline std::unique_ptr<FunctionStmt> Function(VariableName name,
                                                 std::vector<::Var> params,

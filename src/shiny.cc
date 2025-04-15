@@ -51,6 +51,8 @@ class Interpreter {
                         compilerGlobals, interner, *ast);
       auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
+      // return Value::NIL;
+
       Value result = vm.evaluate(rootFunction);
       std::cout << std::endl;
 
