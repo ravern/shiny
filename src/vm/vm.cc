@@ -354,6 +354,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       case Opcode::STORE: {
         int stackSlot = bp + operand;
         stack[stackSlot] = stack.back();
+        stack.pop_back();
         break;
       }
 
@@ -454,6 +455,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
           globals.resize(operand + 1);  // Resize to allow new globals
         }
         globals[operand] = stack.back();
+        stack.pop_back();
         break;
       }
 
@@ -470,6 +472,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         auto upvalue =
             currentFunction.asObject<ClosureObject>()->getUpvalue(upvalueIndex);
         upvalue->setValue(stack.back(), stack);
+        stack.pop_back();
         break;
       }
       case Opcode::UPVALUE_CLOSE: {
