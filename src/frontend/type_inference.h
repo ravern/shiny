@@ -677,6 +677,8 @@ private:
         declare(classStmt.name);
         define(classStmt.name, type);
 
+        classStmt.type = type;
+
         return true;
       }
       case StmtKind::Expr: {

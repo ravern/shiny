@@ -271,7 +271,19 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   }
 
   std::shared_ptr<Type> visitSetExpr(SetExpr& expr) {
-    throw std::runtime_error("Not implemented");
+    auto objectType = visit(*expr.obj);
+    assert(objectType->kind == TypeKind::Instance);
+
+    auto& instanceType = static_cast<InstanceType&>(*objectType);
+    auto klass = instanceType.klass;
+
+    visit(*expr.value); // Evaluate RHS
+
+    int memberIndex = klass->getMemberIndex(expr.var.name);
+    assert(memberIndex != -1);
+
+    emit(Opcode::MEMBER_SET, memberIndex);
+    return klass->getMemberType(memberIndex).value();  // or Void
   }
 
   // Statement visitors
@@ -343,7 +355,14 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     declarations.reserve(stmt.declarations.size());
     // move stmt.declarations into declarations
     for (auto& decl : stmt.declarations) {
-      declarations.push_back(std::move(decl));
+      auto selfExpr = std::make_unique<SelfExpr>();
+      assert(stmt.type.has_value());
+      selfExpr->type = std::make_shared<InstanceType>(stmt.type.value());
+
+      auto setExpr = std::make_unique<SetExpr>(
+          std::move(selfExpr), decl->var, std::move(decl->expression));
+      auto exprStmt = std::make_unique<ExprStmt>(std::move(setExpr));
+      declarations.push_back(std::move(exprStmt));
     }
 
     auto blockStmt = std::make_unique<BlockStmt>(std::move(declarations));
@@ -356,12 +375,12 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     auto initFunctionPtr = ObjectPtr<FunctionObject>(std::move(initializer));
     members.emplace_back(initFunctionPtr);
 
-    // restore stmt.declarations
-    stmt.declarations.clear();
-    for (auto& stmtPtr : initializerAst->body->statements) {
-      auto* declarePtr = static_cast<DeclareStmt*>(stmtPtr.release()); // safe since we know they were DeclareStmt
-      stmt.declarations.push_back(std::unique_ptr<DeclareStmt>(declarePtr));
-    }
+    // // restore stmt.declarations
+    // stmt.declarations.clear();
+    // for (auto& stmtPtr : initializerAst->body->statements) {
+    //   auto* declarePtr = static_cast<DeclareStmt*>(stmtPtr.release()); // safe since we know they were DeclareStmt
+    //   stmt.declarations.push_back(std::unique_ptr<DeclareStmt>(declarePtr));
+    // }
 
     for (auto& method : stmt.methods) {
       auto compiler = Compiler(this, FunctionKind::Method, globals,

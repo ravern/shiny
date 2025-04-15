@@ -134,6 +134,7 @@ public:
   Var name;
   std::vector<std::unique_ptr<DeclareStmt>> declarations;
   std::vector<std::unique_ptr<FunctionStmt>> methods;
+  std::optional<std::shared_ptr<ClassType>> type;
 
   ClassStmt(Var name,
             std::vector<std::unique_ptr<DeclareStmt>> declarations,
