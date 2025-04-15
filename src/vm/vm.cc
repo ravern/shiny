@@ -376,7 +376,16 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::CALL: {
+        if (operand == 0 && stack.back().isObject<ClassObject>()) {
+          callClass();
+          break;
+        }
+
         pushFrame(operand);
+
+        if (currentFunction.isObject<MethodObject>()) {
+          stack[bp] = currentFunction.asObject<MethodObject>()->getSelf();
+        }
 
         printStack();
 
@@ -465,6 +474,46 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
 
+      // Opcodes for arrays
+      case Opcode::ARRAY_GET: {
+        int index = stack.back().asInt();
+        stack.pop_back();
+        auto array = stack.back().asObject<ArrayObject>();
+        stack.pop_back();
+        stack.push_back(array->get(index));
+        break;
+      }
+      case Opcode::ARRAY_SET: {
+        Value value = stack.back();
+        stack.pop_back();
+        int index = stack.back().asInt();
+        stack.pop_back();
+        auto array = stack.back().asObject<ArrayObject>();
+        stack.pop_back();
+        array->set(index, value);
+        break;
+      }
+
+      // Opcodes for dictionaries
+      case Opcode::DICT_GET: {
+        Value key = stack.back();
+        stack.pop_back();
+        auto dict = stack.back().asObject<DictObject>();
+        stack.pop_back();
+        stack.push_back(dict->get(key));
+        break;
+      }
+      case Opcode::DICT_SET: {
+        Value value = stack.back();
+        stack.pop_back();
+        Value key = stack.back();
+        stack.pop_back();
+        auto dict = stack.back().asObject<DictObject>();
+        stack.pop_back();
+        dict->set(key, value);
+        break;
+      }
+
       // Opcodes for instances
       case Opcode::MEMBER_GET: {
         auto instance = stack.back().asObject<InstanceObject>();
@@ -484,6 +533,22 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
 
     printStack();
   }
+}
+
+void VM::callClass() {
+  auto klass = stack.back().asObject<ClassObject>();
+  ObjectPtr<InstanceObject> instance(std::move(klass));
+  for (int i = 0; i < klass->getMembers().size(); i++) {
+    auto member = klass->getMembers()[i];
+    if (member.isObject<FunctionObject>()) {
+      instance->setMember(
+          i, Value(std::move(ObjectPtr<MethodObject>(std::move(
+                 MethodObject(std::move(member.asObject<FunctionObject>()),
+                              std::move(instance)))))));
+    }
+  }
+  stack.pop_back();
+  stack.push_back(Value(std::move(instance)));
 }
 
 void VM::pushFrame(int arity) {

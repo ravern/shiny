@@ -19,6 +19,7 @@ class VM {
   Value evaluate(ObjectPtr<FunctionObject> function);
 
  private:
+  void callClass();
   void pushFrame(int arity);
   void popFrame();
   ObjectPtr<UpvalueObject> captureUpvalue(Upvalue functionUpvalue);

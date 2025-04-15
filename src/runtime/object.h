@@ -156,6 +156,7 @@ class ClassObject {
   const std::optional<SymbolId>& getName() const { return name; }
   std::vector<Value>& getMembers() { return members; }
   const std::vector<Value>& getMembers() const { return members; }
+  Value getMember(int index) const { return members[index]; }
 
  private:
   std::optional<ObjectPtr<ClassObject>> superklass;
@@ -165,7 +166,9 @@ class ClassObject {
 
 class InstanceObject {
  public:
-  InstanceObject(ObjectPtr<ClassObject> klass) : klass(std::move(klass)) {}
+  InstanceObject(ObjectPtr<ClassObject> klass) : klass(std::move(klass)) {
+    members.resize(klass->getMembers().size());
+  }
 
   ObjectPtr<ClassObject>& getClass() { return klass; }
   const ObjectPtr<ClassObject>& getClass() const { return klass; }
@@ -195,8 +198,8 @@ class ArrayObject {
   ArrayObject();
   ~ArrayObject() = default;
 
-  Value getValue(int index) const { return values[index]; }
-  void setValue(int index, Value newValue) { values[index] = newValue; }
+  Value get(int index) const { return values[index]; }
+  void set(int index, Value newValue) { values[index] = newValue; }
 
  private:
   std::vector<Value> values;
@@ -207,11 +210,22 @@ class DictObject {
   DictObject();
   ~DictObject() = default;
 
-  Value getValue(const Value& key) const { return values.at(key); }
-  void setValue(const Value& key, Value newValue) { values[key] = newValue; }
+  Value get(const Value& key) const { return values.at(key); }
+  void set(const Value& key, Value newValue) { values[key] = newValue; }
 
  private:
   std::unordered_map<Value, Value> values;
+};
+
+class BuiltInObject {
+ public:
+  BuiltInObject(std::function<Value(std::vector<Value>&)> function)
+      : function(std::move(function)) {}
+
+  Value call(std::vector<Value>& args) { return function(args); }
+
+ private:
+  std::function<Value(std::vector<Value>&)> function;
 };
 
 class Object {

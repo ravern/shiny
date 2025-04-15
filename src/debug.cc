@@ -22,6 +22,8 @@ std::string opcodeToString(Opcode opcode) {
       return "DICT";
     case Opcode::CONST:
       return "CONST";
+    case Opcode::CLASS:
+      return "CLASS";
     case Opcode::CLOSURE:
       return "CLOSURE";
     case Opcode::BUILT_IN:
@@ -94,8 +96,14 @@ std::string opcodeToString(Opcode opcode) {
       return "UPVALUE_STORE";
     case Opcode::UPVALUE_CLOSE:
       return "UPVALUE_CLOSE";
-    case Opcode::CLASS:
-      return "CLASS";
+    case Opcode::ARRAY_GET:
+      return "ARRAY_GET";
+    case Opcode::ARRAY_SET:
+      return "ARRAY_SET";
+    case Opcode::DICT_GET:
+      return "DICT_GET";
+    case Opcode::DICT_SET:
+      return "DICT_SET";
     case Opcode::MEMBER_GET:
       return "MEMBER_GET";
     case Opcode::MEMBER_SET:
@@ -157,6 +165,10 @@ std::string instructionToString(size_t offset, Instruction instr,
     case Opcode::UPVALUE_STORE:
     case Opcode::GLOBAL_LOAD:
     case Opcode::GLOBAL_STORE:
+    case Opcode::ARRAY_GET:
+    case Opcode::ARRAY_SET:
+    case Opcode::DICT_GET:
+    case Opcode::DICT_SET:
     case Opcode::MEMBER_GET:
     case Opcode::MEMBER_SET:
     case Opcode::CLASS: {
