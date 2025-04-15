@@ -12,7 +12,8 @@ class E2ETest : public ::testing::Test {
       {"factorial.swift", Value(static_cast<int64_t>(120))},
       {"boolean.swift", Value::TRUE},
       {"nested_func.swift", Value(static_cast<int64_t>(25))},
-      {"double.swift", Value(3.14159)}};
+      {"double.swift", Value(3.14159)},
+      {"objects.swift", Value(static_cast<int64_t>(8))}};
 };
 
 // Run each test case

@@ -15,7 +15,7 @@ struct Frame {
 class VM {
  public:
   VM(StringInterner& stringInterner);
-  VM(StringInterner& stringInterner, std::vector<Value>&& globals);
+  VM(StringInterner& stringInterner, const std::vector<Value>& globals);
 
   Value evaluate(ObjectPtr<FunctionObject> function);
 

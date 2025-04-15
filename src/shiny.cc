@@ -5,6 +5,7 @@
 
 #include <fstream>
 
+#include "built_ins.h"
 #include "frontend/ast_pretty_printer.h"
 #include "frontend/compiler.h"
 #include "frontend/parser.h"
@@ -19,9 +20,17 @@ class Interpreter {
 
   TypeEnv inferenceGlobals = {};
   std::vector<VariableName> compilerGlobals;
+  std::vector<Value> vmGlobals;
 
  public:
-  Interpreter() : vm(interner) {}
+  Interpreter() : vm(interner) {
+    for (const auto& entry : builtIns) {
+      VariableName name = interner.intern(entry.name);
+      inferenceGlobals[name] = entry.type;
+      compilerGlobals.push_back(name);
+      vmGlobals.push_back(Value(entry.object));
+    }
+  }
 
   Value run(const std::string& source) {
     try {

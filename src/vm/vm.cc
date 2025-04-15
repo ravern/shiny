@@ -10,8 +10,8 @@
 #include "../runtime/value.h"
 
 VM::VM(StringInterner& stringInterner) : stringInterner(stringInterner) {}
-VM::VM(StringInterner& stringInterner, std::vector<Value>&& globals)
-    : stringInterner(stringInterner), globals(std::move(globals)) {}
+VM::VM(StringInterner& stringInterner, const std::vector<Value>& globals)
+    : stringInterner(stringInterner), globals(globals) {}
 
 Value VM::evaluate(ObjectPtr<FunctionObject> function) {
   std::cout << "==== Starting evaluation ====" << std::endl;

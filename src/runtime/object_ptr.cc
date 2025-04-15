@@ -109,4 +109,5 @@ template class ObjectPtr<ClassObject>;
 template class ObjectPtr<InstanceObject>;
 template class ObjectPtr<DictObject>;
 template class ObjectPtr<StringObject>;
+template class ObjectPtr<BuiltInObject>;
 template class ObjectPtr<std::monostate>;
