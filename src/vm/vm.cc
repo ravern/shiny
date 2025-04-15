@@ -495,7 +495,6 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         int index = stack.back().asInt();
         stack.pop_back();
         auto array = stack.back().asObject<ArrayObject>();
-        stack.pop_back();
         array->set(index, value);
         break;
       }
@@ -515,7 +514,6 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         Value key = stack.back();
         stack.pop_back();
         auto dict = stack.back().asObject<DictObject>();
-        stack.pop_back();
         dict->set(key, value);
         break;
       }
@@ -527,9 +525,10 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         break;
       }
       case Opcode::MEMBER_SET: {
-        auto instance = stack.back().asObject<InstanceObject>();
-        instance->setMember(operand, stack.back());
+        Value value = stack.back();
         stack.pop_back();
+        auto instance = stack.back().asObject<InstanceObject>();
+        instance->setMember(operand, value);
         break;
       }
 
