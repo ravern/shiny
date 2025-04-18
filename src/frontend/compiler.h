@@ -311,8 +311,14 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   // Statement visitors
   void visitBlockStmt(BlockStmt& stmt) {
+    if (!isTopLevel()) {
+      beginScope();
+    }
     for (auto& statement : stmt.statements) {
       visit(*statement);
+    }
+    if (!isTopLevel()) {
+      endScope();
     }
   }
 
