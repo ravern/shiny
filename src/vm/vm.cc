@@ -54,20 +54,6 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.push_back(chunk->constants[operand]);
         break;
       }
-      case Opcode::ARRAY: {
-        stack.push_back(Value(std::move(ObjectPtr<ArrayObject>())));
-        break;
-      }
-      case Opcode::DICT: {
-        stack.push_back(Value(std::move(ObjectPtr<DictObject>())));
-        break;
-      }
-      case Opcode::CLASS: {
-        ObjectPtr<ClassObject> newClass =
-            chunk->constants[operand].asObject<ClassObject>();
-        stack.push_back(Value(std::move(newClass)));
-        break;
-      }
       case Opcode::CLOSURE: {
         ObjectPtr<FunctionObject> newFunction =
             chunk->constants[operand].asObject<FunctionObject>();
@@ -477,44 +463,6 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       }
       case Opcode::UPVALUE_CLOSE: {
         closeUpvalues(stack.size() - 1);
-        break;
-      }
-
-      // Opcodes for arrays
-      case Opcode::ARRAY_GET: {
-        int index = stack.back().asInt();
-        stack.pop_back();
-        auto array = stack.back().asObject<ArrayObject>();
-        stack.pop_back();
-        stack.push_back(array->get(index));
-        break;
-      }
-      case Opcode::ARRAY_SET: {
-        Value value = stack.back();
-        stack.pop_back();
-        int index = stack.back().asInt();
-        stack.pop_back();
-        auto array = stack.back().asObject<ArrayObject>();
-        array->set(index, value);
-        break;
-      }
-
-      // Opcodes for dictionaries
-      case Opcode::DICT_GET: {
-        Value key = stack.back();
-        stack.pop_back();
-        auto dict = stack.back().asObject<DictObject>();
-        stack.pop_back();
-        stack.push_back(dict->get(key));
-        break;
-      }
-      case Opcode::DICT_SET: {
-        Value value = stack.back();
-        stack.pop_back();
-        Value key = stack.back();
-        stack.pop_back();
-        auto dict = stack.back().asObject<DictObject>();
-        dict->set(key, value);
         break;
       }
 

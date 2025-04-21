@@ -405,7 +405,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     auto klassObj = ObjectPtr<ClassObject>(std::move(ClassObject(name, std::move(members))));
     uint32_t constantIndex = addConstant(std::move(klassObj));
-    emit(Opcode::CLASS, constantIndex);
+    emit(Opcode::CONST, constantIndex);
 
     // store and pop off the stack
     define(name, false);

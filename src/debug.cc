@@ -16,18 +16,10 @@ std::string opcodeToString(Opcode opcode) {
       return "TRUE";
     case Opcode::FALSE:
       return "FALSE";
-    case Opcode::ARRAY:
-      return "ARRAY";
-    case Opcode::DICT:
-      return "DICT";
     case Opcode::CONST:
       return "CONST";
-    case Opcode::CLASS:
-      return "CLASS";
     case Opcode::CLOSURE:
       return "CLOSURE";
-    case Opcode::BUILT_IN:
-      return "BUILT_IN";
     case Opcode::ADD:
       return "ADD";
     case Opcode::SUB:
@@ -84,8 +76,6 @@ std::string opcodeToString(Opcode opcode) {
       return "JUMP";
     case Opcode::CALL:
       return "CALL";
-    case Opcode::TAIL_CALL:
-      return "TAIL_CALL";
     case Opcode::RETURN:
       return "RETURN";
     case Opcode::HALT:
@@ -96,14 +86,6 @@ std::string opcodeToString(Opcode opcode) {
       return "UPVALUE_STORE";
     case Opcode::UPVALUE_CLOSE:
       return "UPVALUE_CLOSE";
-    case Opcode::ARRAY_GET:
-      return "ARRAY_GET";
-    case Opcode::ARRAY_SET:
-      return "ARRAY_SET";
-    case Opcode::DICT_GET:
-      return "DICT_GET";
-    case Opcode::DICT_SET:
-      return "DICT_SET";
     case Opcode::MEMBER_GET:
       return "MEMBER_GET";
     case Opcode::MEMBER_SET:
@@ -113,7 +95,7 @@ std::string opcodeToString(Opcode opcode) {
     case Opcode::GLOBAL_STORE:
       return "GLOBAL_STORE";
     default:
-      return "UNKNOWN";
+      return "<unknown>";
   }
 }
 
@@ -146,7 +128,6 @@ std::string instructionToString(size_t offset, Instruction instr,
   switch (opcode) {
     case Opcode::CONST:
     case Opcode::CLOSURE:
-    case Opcode::BUILT_IN:
     case Opcode::ADD:
     case Opcode::SUB:
     case Opcode::MUL:
@@ -159,19 +140,13 @@ std::string instructionToString(size_t offset, Instruction instr,
     case Opcode::LOAD:
     case Opcode::STORE:
     case Opcode::CALL:
-    case Opcode::TAIL_CALL:
     case Opcode::JUMP:
     case Opcode::UPVALUE_LOAD:
     case Opcode::UPVALUE_STORE:
     case Opcode::GLOBAL_LOAD:
     case Opcode::GLOBAL_STORE:
-    case Opcode::ARRAY_GET:
-    case Opcode::ARRAY_SET:
-    case Opcode::DICT_GET:
-    case Opcode::DICT_SET:
     case Opcode::MEMBER_GET:
-    case Opcode::MEMBER_SET:
-    case Opcode::CLASS: {
+    case Opcode::MEMBER_SET: {
       ss << operand;
       break;
     }

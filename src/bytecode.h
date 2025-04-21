@@ -16,12 +16,8 @@ enum class Opcode : uint8_t {
   NIL = 0x11,
   TRUE = 0x12,
   FALSE = 0x13,
-  ARRAY = 0x14,
-  DICT = 0x15,
-  CLASS = 0x16,
-  CONST = 0x17,     // operand: index of class constant
-  CLOSURE = 0x18,   // operand: index of function constant
-  BUILT_IN = 0x19,  // operand: index of built-in function
+  CONST = 0x14,    // operand: index of class constant
+  CLOSURE = 0x15,  // operand: index of function constant
 
   ADD = 0x31,  // operand: type of operands
   SUB = 0x32,  // operand: type of operands
@@ -52,11 +48,10 @@ enum class Opcode : uint8_t {
   POP = 0x53,
 
   TEST = 0x60,
-  JUMP = 0x61,       // operand: offset of instruction to jump to
-  CALL = 0x62,       // operand: number of arguments
-  TAIL_CALL = 0x63,  // operand: number of arguments
-  RETURN = 0x64,
-  HALT = 0x65,
+  JUMP = 0x61,  // operand: offset of instruction to jump to
+  CALL = 0x62,  // operand: number of arguments
+  RETURN = 0x63,
+  HALT = 0x64,
 
   GLOBAL_LOAD = 0x70,   // operand: index of global
   GLOBAL_STORE = 0x71,  // operand: index of global
@@ -65,14 +60,8 @@ enum class Opcode : uint8_t {
   UPVALUE_STORE = 0x81,  // operand: index of upvalue
   UPVALUE_CLOSE = 0x82,
 
-  DICT_GET = 0x90,
-  DICT_SET = 0x91,
-
-  ARRAY_GET = 0xa0,
-  ARRAY_SET = 0xa1,
-
-  MEMBER_GET = 0xc0,  // operand: index of member
-  MEMBER_SET = 0xc1,  // operand: index of member
+  MEMBER_GET = 0x90,  // operand: index of member
+  MEMBER_SET = 0x91,  // operand: index of member
 };
 
 struct Chunk {
