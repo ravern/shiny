@@ -159,6 +159,13 @@ private:
         substituteAst(*getExpr.obj);
         break;
       }
+      case ExprKind::Set: {
+        auto& setExpr = static_cast<SetExpr&>(expr);
+        substituteAst(*setExpr.obj);
+        auto varType = substitute(setExpr.var.type.value());
+        setExpr.var.type = varType;
+        break;
+      }
       default:
         throw std::runtime_error("Unknown ExprKind");
     }
@@ -536,7 +543,32 @@ private:
         return member.value();
       }
       case ExprKind::Set: {
-        throw std::runtime_error("Not implemented");
+        auto& set = static_cast<SetExpr&>(expr);
+        auto _instanceType = infer(*set.obj);
+        if (_instanceType->kind != TypeKind::Instance) {
+          throw TypeError("Field or method does not exist");
+        }
+        auto& instanceType = static_cast<InstanceType&>(*_instanceType);
+        auto _classType = lookup(instanceType.klass->name);
+        assert(_classType->kind == TypeKind::Class);
+        auto& classType = static_cast<ClassType&>(*_classType);
+
+        auto member = classType.getMemberType(set.var.name);
+        if (!member.has_value()) {
+          throw TypeError("Field or method does not exist");
+        }
+        auto memberType = member.value();
+        set.var.type = memberType;
+
+        // Infer the value being assigned
+        auto valueType = infer(*set.value);
+
+        // Ensure types match
+        if (*memberType != *valueType) {
+          throw TypeError("Type mismatch in field assignment");
+        }
+
+        return memberType;
       }
       default:
         throw std::runtime_error("Unknown ExprKind");

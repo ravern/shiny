@@ -18,7 +18,7 @@ class Object {
     }
 
     func update() {
-        position.add(velocity.x, velocity.y)
+        self.position.add(self.velocity.x, self.velocity.y)
     }
 }
 
