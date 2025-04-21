@@ -9,12 +9,16 @@
 #include "../runtime/object_ptr.h"
 #include "../runtime/value.h"
 
-VM::VM(StringInterner& stringInterner) : stringInterner(stringInterner) {}
-VM::VM(StringInterner& stringInterner, const std::vector<Value>& globals)
-    : stringInterner(stringInterner), globals(globals) {}
+VM::VM(StringInterner& stringInterner, bool verbose)
+    : stringInterner(stringInterner), verbose(verbose) {}
+VM::VM(StringInterner& stringInterner, const std::vector<Value>& globals,
+       bool verbose)
+    : stringInterner(stringInterner), globals(globals), verbose(verbose) {}
 
 Value VM::evaluate(ObjectPtr<FunctionObject> function) {
-  std::cout << "==== Starting evaluation ====" << std::endl;
+  if (verbose) {
+    std::cout << "==== Starting evaluation ====" << std::endl;
+  }
 
   // Initialize the VM state for a new evaluation
   currentFunction = ObjectPtr<ClosureObject>(std::move(function));
@@ -29,8 +33,10 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
     Opcode opcode = static_cast<Opcode>(instruction & 0xFF);
     uint32_t operand = instruction >> 8;
 
-    std::cout << instructionToString(ip - 1, instruction, stringInterner)
-              << std::endl;
+    if (verbose) {
+      std::cout << instructionToString(ip - 1, instruction, stringInterner)
+                << std::endl;
+    }
 
     // Execute the instruction
     switch (opcode) {
@@ -379,18 +385,22 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
           stack[bp] = currentFunction.asObject<MethodObject>()->getSelf();
         }
 
-        printStack();
+        if (verbose) {
+          printStack();
+        }
 
         // Print entering frame
         std::optional<SymbolId> name =
             getFunctionFromValue(callStack.back().function)->getName();
-        std::cout << "== Entering "
-                  << (name.has_value() ? stringInterner.get(name.value())
-                                       : "<anonymous>")
-                  << " ==" << std::endl;
+        if (verbose) {
+          std::cout << "== Entering "
+                    << (name.has_value() ? stringInterner.get(name.value())
+                                         : "<anonymous>")
+                    << " ==" << std::endl;
+        }
 
-        // Skip printing the stack at the end of iteration (already printed the
-        // stack above)
+        // Skip printing the stack at the end of iteration (already printed
+        // the stack above)
         continue;
       }
       case Opcode::RETURN: {
@@ -410,24 +420,30 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         stack.push_back(returnValue);
 
         // Print the stack here
-        printStack();
+        if (verbose) {
+          printStack();
+        }
 
         // Print leaving frame
         std::optional<SymbolId> name =
             getFunctionFromValue(callStack.back().function)->getName();
-        std::cout << "== Leaving "
-                  << (name.has_value() ? stringInterner.get(name.value())
-                                       : "<anonymous>")
-                  << " ==" << std::endl;
+        if (verbose) {
+          std::cout << "== Leaving "
+                    << (name.has_value() ? stringInterner.get(name.value())
+                                         : "<anonymous>")
+                    << " ==" << std::endl;
+        }
 
         popFrame();
 
-        // Skip printing the stack at the end of iteration (already printed the
-        // stack above)
+        // Skip printing the stack at the end of iteration (already printed
+        // the stack above)
         continue;
       }
       case Opcode::HALT: {
-        std::cout << "==== Evaluation complete ====" << std::endl;
+        if (verbose) {
+          std::cout << "==== Evaluation complete ====" << std::endl;
+        }
         return lastPoppedValue;
       }
 
@@ -485,7 +501,9 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
         throw std::runtime_error("Unimplemented opcode");
     }
 
-    printStack();
+    if (verbose) {
+      printStack();
+    }
   }
 }
 

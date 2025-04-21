@@ -4,9 +4,13 @@
 
 int main(int argc, char** argv) {
   argparse::ArgumentParser program("shiny");
+  program.add_argument("-V", "--verbose")
+      .help("include output helpful for debugging")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("file")
-    .help("shiny file")
-    .nargs(argparse::nargs_pattern::optional);
+      .help("shiny file")
+      .nargs(argparse::nargs_pattern::optional);
 
   try {
     program.parse_args(argc, argv);
@@ -17,9 +21,10 @@ int main(int argc, char** argv) {
   }
 
   if (program.present("file")) {
-    Shiny::runFile(program.get<std::string>("file"));
+    Shiny::runFile(program.get<std::string>("file"),
+                   program.get<bool>("verbose"));
   } else {
-    Shiny::repl();
+    Shiny::repl(program.get<bool>("verbose"));
   }
   return 0;
 }

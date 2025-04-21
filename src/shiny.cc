@@ -22,8 +22,10 @@ class Interpreter {
   std::vector<VariableName> compilerGlobals;
   std::vector<Value> vmGlobals;
 
+  bool verbose;
+
  public:
-  Interpreter() : vm(interner) {
+  Interpreter(bool verbose = false) : vm(interner, verbose), verbose(verbose) {
     for (const auto& entry : builtIns) {
       VariableName name = interner.intern(entry.name);
       inferenceGlobals[name] = entry.type;
@@ -44,17 +46,19 @@ class Interpreter {
       TypeInference inference(interner, &inferenceGlobals);
       inference.perform(*ast);
 
-      ASTPrettyPrinter printer(interner);
-      printer.print(*ast);
+      if (verbose) {
+        ASTPrettyPrinter printer(interner);
+        printer.print(*ast);
+      }
 
       Compiler compiler(nullptr, Compiler::FunctionKind::TopLevel,
-                        compilerGlobals, interner, *ast);
+                        compilerGlobals, interner, *ast, verbose);
       auto rootFunction = ObjectPtr<FunctionObject>(compiler.compile());
 
-      // return Value::NIL;
-
       Value result = vm.evaluate(rootFunction);
-      std::cout << std::endl;
+      if (verbose) {
+        std::cout << std::endl;
+      }
 
       // print the result of the last statement
       std::cout << valueToString(result, interner) << std::endl;
@@ -121,18 +125,18 @@ class Interpreter {
 };
 
 // Public API
-Value run(const std::string& source) {
-  Interpreter interpreter;
+Value run(const std::string& source, bool verbose) {
+  Interpreter interpreter(verbose);
   return interpreter.run(source);
 }
 
-Value runFile(const std::string& filename) {
-  Interpreter interpreter;
+Value runFile(const std::string& filename, bool verbose) {
+  Interpreter interpreter(verbose);
   return interpreter.runFile(filename);
 }
 
-void repl() {
-  Interpreter interpreter;
+void repl(bool verbose) {
+  Interpreter interpreter(verbose);
   interpreter.repl();
 }
 

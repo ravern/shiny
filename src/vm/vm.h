@@ -14,8 +14,9 @@ struct Frame {
 
 class VM {
  public:
-  VM(StringInterner& stringInterner);
-  VM(StringInterner& stringInterner, const std::vector<Value>& globals);
+  VM(StringInterner& stringInterner, bool verbose = false);
+  VM(StringInterner& stringInterner, const std::vector<Value>& globals,
+     bool verbose = false);
 
   Value evaluate(ObjectPtr<FunctionObject> function);
 
@@ -40,4 +41,5 @@ class VM {
   std::vector<Frame> callStack;
   std::optional<ObjectPtr<UpvalueObject>> upvalueStack;
   Value lastPoppedValue;
+  bool verbose;
 };

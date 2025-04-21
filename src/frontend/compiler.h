@@ -36,17 +36,21 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
   FunctionObject function;
   std::optional<VariableName> name;
 
+  bool verbose;
+
  public:
   Compiler(Compiler* enclosing_compiler, FunctionKind kind,
            std::vector<VariableName>& globals, StringInterner& stringInterner,
-           Stmt& ast, std::optional<SymbolId> name = std::nullopt)
+           Stmt& ast, std::optional<SymbolId> name = std::nullopt,
+           bool verbose = false)
       : enclosingCompiler(enclosing_compiler),
         kind(kind),
         stringInterner(stringInterner),
         ast(ast),
         name(name),
         globals(globals),
-        function(name) {}
+        function(name),
+        verbose(verbose) {}
 
   FunctionObject compile() {
     switch (kind) {
@@ -96,8 +100,10 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       chunkName = "<anonymous>";
     }
 
-    std::cout << chunkToString(function.getChunk(), chunkName, stringInterner)
-              << std::endl;
+    if (verbose) {
+      std::cout << chunkToString(function.getChunk(), chunkName, stringInterner)
+                << std::endl;
+    }
 
     return function;
   }

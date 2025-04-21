@@ -6,8 +6,8 @@
 
 namespace Shiny {
 
-Value run(const std::string& source);
-Value runFile(const std::string& filename);
-void repl();
+Value run(const std::string& source, bool verbose = false);
+Value runFile(const std::string& filename, bool verbose = false);
+void repl(bool verbose = false);
 
 }  // namespace Shiny
