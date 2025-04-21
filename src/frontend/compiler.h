@@ -160,7 +160,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
   std::shared_ptr<Type> visitApplyExpr(ApplyExpr& expr) {
     auto calleeType = visit(*expr.callee);
-    assert(calleeType->kind == TypeKind::Function || calleeType->kind == TypeKind::Class);
+    assert(calleeType->kind == TypeKind::Function ||
+           calleeType->kind == TypeKind::Class);
 
     if (calleeType->kind == TypeKind::Function) {
       auto& functionType = static_cast<FunctionType&>(*calleeType);
@@ -174,7 +175,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     }
 
     if (calleeType->kind == TypeKind::Class) {
-      std::shared_ptr<ClassType> classType = static_pointer_cast<ClassType>(calleeType);
+      std::shared_ptr<ClassType> classType =
+          static_pointer_cast<ClassType>(calleeType);
       assert(expr.arguments.size() == 0);
 
       emit(Opcode::CALL, 0);
@@ -182,6 +184,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       SymbolId initSymbol = stringInterner.intern("__init__");
       int methodIndex = classType->getMemberIndex(initSymbol);
       assert(methodIndex != -1);
+      emit(Opcode::DUP);
       emit(Opcode::MEMBER_GET, methodIndex);
 
       emit(Opcode::CALL, 0);
@@ -285,7 +288,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     auto objType = visit(*expr.obj);
     assert(objType->kind == TypeKind::Instance);
     auto& instanceType = static_cast<InstanceType&>(*objType);
-    auto& klass= instanceType.klass;
+    auto& klass = instanceType.klass;
     auto memberIndex = klass->getMemberIndex(expr.name.name);
     assert(memberIndex != -1);
     auto memberType = klass->getMemberType(memberIndex).value();
@@ -300,7 +303,7 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     auto& instanceType = static_cast<InstanceType&>(*objectType);
     auto klass = instanceType.klass;
 
-    visit(*expr.value); // Evaluate RHS
+    visit(*expr.value);  // Evaluate RHS
 
     int memberIndex = klass->getMemberIndex(expr.var.name);
     assert(memberIndex != -1);
@@ -370,17 +373,19 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
       assert(stmt.type.has_value());
       selfExpr->type = std::make_shared<InstanceType>(stmt.type.value());
 
-      auto setExpr = std::make_unique<SetExpr>(
-          std::move(selfExpr), decl->var, std::move(decl->expression));
+      auto setExpr = std::make_unique<SetExpr>(std::move(selfExpr), decl->var,
+                                               std::move(decl->expression));
       auto exprStmt = std::make_unique<ExprStmt>(std::move(setExpr));
       declarations.push_back(std::move(exprStmt));
     }
 
     auto blockStmt = std::make_unique<BlockStmt>(std::move(declarations));
     std::vector<Var> params;
-    auto initializerAst = std::make_unique<FunctionStmt>(initializerVar, params, T::Void(), std::move(blockStmt));
+    auto initializerAst = std::make_unique<FunctionStmt>(
+        initializerVar, params, T::Void(), std::move(blockStmt));
 
-    Compiler compiler(this, FunctionKind::Method, globals, stringInterner, *initializerAst, initializerName);
+    Compiler compiler(this, FunctionKind::Method, globals, stringInterner,
+                      *initializerAst, initializerName);
     auto initializer = compiler.compile();
 
     auto initFunctionPtr = ObjectPtr<FunctionObject>(std::move(initializer));
@@ -389,13 +394,14 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
     // // restore stmt.declarations
     // stmt.declarations.clear();
     // for (auto& stmtPtr : initializerAst->body->statements) {
-    //   auto* declarePtr = static_cast<DeclareStmt*>(stmtPtr.release()); // safe since we know they were DeclareStmt
+    //   auto* declarePtr = static_cast<DeclareStmt*>(stmtPtr.release()); //
+    //   safe since we know they were DeclareStmt
     //   stmt.declarations.push_back(std::unique_ptr<DeclareStmt>(declarePtr));
     // }
 
     for (auto& method : stmt.methods) {
       auto compiler = Compiler(this, FunctionKind::Method, globals,
-                         stringInterner, *method, method->name.name);
+                               stringInterner, *method, method->name.name);
       auto function = compiler.compile();
       auto functionPtr = ObjectPtr<FunctionObject>(std::move(function));
       members.emplace_back(functionPtr);
@@ -403,7 +409,8 @@ class Compiler : public ASTVisitor<Compiler, std::shared_ptr<Type>, void> {
 
     endScope();
 
-    auto klassObj = ObjectPtr<ClassObject>(std::move(ClassObject(name, std::move(members))));
+    auto klassObj = ObjectPtr<ClassObject>(
+        std::move(ClassObject(name, std::move(members))));
     uint32_t constantIndex = addConstant(std::move(klassObj));
     emit(Opcode::CONST, constantIndex);
 

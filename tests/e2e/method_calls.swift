@@ -8,7 +8,7 @@ class Foo {
     }
 
     func baz() -> Int {
-        self.x + self.y
+        return self.x + self.y
     }
 }
 

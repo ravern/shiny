@@ -469,6 +469,7 @@ Value VM::evaluate(ObjectPtr<FunctionObject> function) {
       // Opcodes for instances
       case Opcode::MEMBER_GET: {
         auto instance = stack.back().asObject<InstanceObject>();
+        stack.pop_back();
         stack.push_back(instance->getMember(operand));
         break;
       }

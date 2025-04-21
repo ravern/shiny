@@ -19,7 +19,8 @@ class E2ETest : public ::testing::Test {
       {"objects.swift", Value(static_cast<int64_t>(8))},
       {"simple_function.swift", Value(static_cast<int64_t>(1000))},
       {"ifs.swift", Value(static_cast<int64_t>(4))},
-      {"nested_objects.swift", Value(static_cast<int64_t>(9))}};
+      {"nested_objects.swift", Value(static_cast<int64_t>(9))},
+      {"method_calls.swift", Value(static_cast<int64_t>(3))}};
 };
 
 // Run each test case
