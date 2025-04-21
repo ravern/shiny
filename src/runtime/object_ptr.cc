@@ -35,7 +35,7 @@ ObjectPtr<T>::~ObjectPtr() noexcept(false) {
     throw std::runtime_error("Tried to decrement strong count of 0");
   }
   ptr->strongCount--;
-  if (ptr->strongCount == 0 && ptr->weakCount == 0) {
+  if (ptr->strongCount == 0) {
     delete ptr;
   }
 }
@@ -103,11 +103,9 @@ uint64_t ObjectPtr<T>::__forget() {
 template class ObjectPtr<FunctionObject>;
 template class ObjectPtr<UpvalueObject>;
 template class ObjectPtr<ClosureObject>;
-template class ObjectPtr<ArrayObject>;
 template class ObjectPtr<MethodObject>;
 template class ObjectPtr<ClassObject>;
 template class ObjectPtr<InstanceObject>;
-template class ObjectPtr<DictObject>;
 template class ObjectPtr<StringObject>;
 template class ObjectPtr<BuiltInObject>;
 template class ObjectPtr<std::monostate>;

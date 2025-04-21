@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <optional>
 #include <unordered_map>
 #include <variant>
@@ -198,35 +197,6 @@ class StringObject {
   std::string data;
 };
 
-class ArrayObject {
- public:
-  ArrayObject();
-  ~ArrayObject() = default;
-
-  std::vector<Value>& getValues() { return values; }
-  const std::vector<Value>& getValues() const { return values; }
-  Value get(int index) const { return values[index]; }
-  void set(int index, Value newValue) { values[index] = newValue; }
-  void append(Value value) { values.push_back(value); }
-
- private:
-  std::vector<Value> values;
-};
-
-class DictObject {
- public:
-  DictObject();
-  ~DictObject() = default;
-
-  std::unordered_map<Value, Value>& getValues() { return values; }
-  const std::unordered_map<Value, Value>& getValues() const { return values; }
-  Value get(const Value& key) const { return values.at(key); }
-  void set(const Value& key, Value newValue) { values[key] = newValue; }
-
- private:
-  std::unordered_map<Value, Value> values;
-};
-
 class BuiltInObject {
  public:
   BuiltInObject(
@@ -247,7 +217,7 @@ class BuiltInObject {
 class Object {
  public:
   template <typename T>
-  Object(T&& o) : data(std::move(o)), strongCount(1), weakCount(0) {}
+  Object(T&& o) : data(std::move(o)), strongCount(1) {}
 
   ~Object() = default;
 
@@ -272,9 +242,7 @@ class Object {
   }
 
   std::variant<FunctionObject, UpvalueObject, ClosureObject, StringObject,
-               ArrayObject, DictObject, MethodObject, ClassObject,
-               InstanceObject, BuiltInObject>
+               MethodObject, ClassObject, InstanceObject, BuiltInObject>
       data;
   int strongCount;
-  int weakCount;
 };

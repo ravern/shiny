@@ -13,13 +13,6 @@ static Value print(std::vector<Value>& args, StringInterner& stringInterner) {
   return Value::NIL;
 }
 
-static Value arrayAppend(std::vector<Value>& args,
-                         StringInterner& stringInterner) {
-  auto array = args[0].asObject<ArrayObject>();
-  array->append(args[1]);
-  return Value::NIL;
-}
-
 struct BuiltInEntry {
   std::string name;
   std::shared_ptr<Type> type;
@@ -32,9 +25,4 @@ static const std::vector<BuiltInEntry> builtIns = {
                                     std::make_shared<VoidType>()),
      ObjectPtr<BuiltInObject>(
          std::move(BuiltInObject(print, "__built_in__print__")))},
-    {"__built_in__array_append__",
-     std::make_shared<FunctionType>(std::vector<std::shared_ptr<Type>>{},
-                                    std::make_shared<VoidType>()),  // FIXME
-     ObjectPtr<BuiltInObject>(
-         std::move(BuiltInObject(arrayAppend, "__built_in__array_append__")))},
 };
