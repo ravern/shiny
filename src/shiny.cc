@@ -26,12 +26,12 @@ class Interpreter {
 
  public:
   Interpreter(bool verbose = false) : vm(interner, verbose), verbose(verbose) {
-    for (const auto& entry : builtIns) {
-      VariableName name = interner.intern(entry.name);
-      inferenceGlobals[name] = entry.type;
-      compilerGlobals.push_back(name);
-      vmGlobals.push_back(Value(entry.object));
-    }
+    // for (const auto& entry : builtIns) {
+    //   VariableName name = interner.intern(entry.name);
+    //   inferenceGlobals[name] = entry.type;
+    //   compilerGlobals.push_back(name);
+    //   vmGlobals.push_back(Value(entry.object));
+    // }
   }
 
   Value run(const std::string& source) {
